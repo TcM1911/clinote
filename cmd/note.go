@@ -29,6 +29,10 @@ var noteCmd = &cobra.Command{
 	Short: "View, edit and create a note.",
 	Long:  `Displays the content of a note.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) != 1 {
+			cmd.Usage()
+			return
+		}
 		getNote(cmd, args)
 	},
 }
