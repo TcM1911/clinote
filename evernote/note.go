@@ -65,10 +65,21 @@ type Note struct {
 	Notebook *Notebook
 }
 
-// GetNote gets the note metadata from the server.
-func GetNote(title string) *Note {
+// GetNote gets the note metadata in the notebook from the server.
+// If the notebook is an empty string, the first matching note will
+// be returned.
+func GetNote(title, notebook string) *Note {
 	ns := user.GetNoteStore()
 	filter := notestore.NewNoteFilter()
+	if notebook != "" {
+		nb, err := findNotebook(notebook)
+		if err != nil {
+			fmt.Println("Error when getting the notebook:", err)
+			os.Exit(1)
+		}
+		nbGUID := nb.GetGUID()
+		filter.NotebookGuid = &nbGUID
+	}
 	filter.Words = &title
 	notes, err := ns.FindNotes(user.AuthToken, filter, 0, 20)
 	if err != nil {
@@ -106,7 +117,7 @@ func convert(note *types.Note) *Note {
 
 // GetNoteWithContent returns the note with content from the user's notestore.
 func GetNoteWithContent(title string) *Note {
-	n := GetNote(title)
+	n := GetNote(title, "")
 	ns := user.GetNoteStore()
 	content, err := ns.GetNoteContent(user.AuthToken, n.GUID)
 	if err != nil {
@@ -124,13 +135,13 @@ func SaveChanges(n *Note) {
 }
 
 func ChangeTitle(old, new string) {
-	n := GetNote(old)
+	n := GetNote(old, "")
 	n.Title = new
 	saveChanges(n, false)
 }
 
 func MoveNote(noteTitle, notebookName string) {
-	n := GetNote(noteTitle)
+	n := GetNote(noteTitle, "")
 	b, err := FindNotebook(notebookName)
 	if err != nil {
 		fmt.Println("Error when trying to retrieve notebook:", err)
@@ -140,8 +151,8 @@ func MoveNote(noteTitle, notebookName string) {
 	saveChanges(n, false)
 }
 
-func DeleteNote(title string) {
-	n := GetNote(title)
+func DeleteNote(title, notebook string) {
+	n := GetNote(title, notebook)
 	ns := user.GetNoteStore()
 	_, err := ns.DeleteNote(user.AuthToken, n.GUID)
 	if err != nil {

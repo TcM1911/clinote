@@ -34,10 +34,16 @@ To expunge the note you need to use the official client or the web client.`,
 			fmt.Println("Error, a note title has to be given")
 			return
 		}
-		evernote.DeleteNote(args[0])
+		nb, err := cmd.Flags().GetString("notebook")
+		if err != nil {
+			fmt.Println("Error when parsing the notebook name:", err)
+			return
+		}
+		evernote.DeleteNote(args[0], nb)
 	},
 }
 
 func init() {
 	noteCmd.AddCommand(deleteNoteCmd)
+	deleteNoteCmd.Flags().StringP("notebook", "b", "", "The notebook of the note.")
 }
