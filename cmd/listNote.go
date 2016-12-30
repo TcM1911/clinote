@@ -101,7 +101,7 @@ func findNotes(cmd *cobra.Command, args []string) {
 
 	outputStr := []byte("Search request:.\n")
 	outputStr = append(outputStr, []byte(fmt.Sprintf("Found %d items\n", len(list.GetNotes())))...)
-	outputStr = append(outputStr, []byte(fmt.Sprintf("%3s : %10s | %10s | %-25s | %-25s |\n",
+	outputStr = append(outputStr, []byte(fmt.Sprintf("%3s : %10s | %10s | %-25s | %-25s\n",
 		"#",
 		"Created",
 		"Updated",
