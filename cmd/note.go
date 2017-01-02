@@ -39,10 +39,20 @@ var noteCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(noteCmd)
+	noteCmd.Flags().Bool("raw", false, "Display raw content instead of markdown encoded.")
 }
 
 func getNote(cmd *cobra.Command, args []string) {
 	name := args[0]
+	raw, err := cmd.Flags().GetBool("raw")
+	if err != nil {
+		fmt.Println("Error when paring raw flag:", err)
+		return
+	}
 	n := evernote.GetNoteWithContent(name)
-	fmt.Println(n.Title, "\n\n", n.MD)
+	if raw {
+		fmt.Println(n.Title, "\n\n", n.Body)
+	} else {
+		fmt.Println(n.Title, "\n\n", n.MD)
+	}
 }
