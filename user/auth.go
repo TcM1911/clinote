@@ -90,7 +90,7 @@ func Login() bool {
 		fmt.Println("Error when getting request temporary token:", err)
 		return false
 	}
-	tryOpenLoginInBrowser(loginURL)
+	go tryOpenLoginInBrowser(loginURL)
 	fmt.Println("Waiting for access...")
 	callback := <-c
 	if callback.TempToken != tmpToken.Token {
