@@ -20,6 +20,7 @@ package evernote
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -63,6 +64,16 @@ type Note struct {
 	Deleted bool
 	// Notebook the note belongs to.
 	Notebook *Notebook
+}
+
+// GetNoteByGUID gets the note with the content from the server.
+func GetNoteByGUID(guid types.GUID) (*Note, error) {
+	ns := user.GetNoteStore()
+	note, err := ns.GetNote(user.AuthToken, guid, true, false, false, false)
+	if err != nil {
+		return nil, err
+	}
+	return convert(note), nil
 }
 
 // GetNote gets the note metadata in the notebook from the server.
@@ -130,8 +141,8 @@ func GetNoteWithContent(title string) *Note {
 }
 
 // SaveChanges updates the changes to the note on the server.
-func SaveChanges(n *Note) {
-	saveChanges(n, true)
+func SaveChanges(n *Note) error {
+	return saveChanges(n, true)
 }
 
 func ChangeTitle(old, new string) {
@@ -161,20 +172,23 @@ func DeleteNote(title, notebook string) {
 	}
 }
 
-func saveChanges(n *Note, updateContent bool) {
+func saveChanges(n *Note, updateContent bool) error {
 	cacheMu.Lock()
 	note, ok := cache[n.GUID]
 	if !ok {
+		cacheMu.Unlock()
 		// No cached note, so we can't update.
-		fmt.Println("Failed to update the changes.")
-		return
+		return errors.New("no cached note available")
 	}
 	// Remove cached note.
 	delete(cache, n.GUID)
 	cacheMu.Unlock()
 	note.Title = &n.Title
 	if updateContent {
-		xmlBody := toXML(n.MD)
+		xmlBody, err := toXML(n.MD)
+		if err != nil {
+			return err
+		}
 		note.Content = &xmlBody
 	}
 
@@ -186,19 +200,22 @@ func saveChanges(n *Note, updateContent bool) {
 	ns := user.GetNoteStore()
 	_, err := ns.UpdateNote(user.AuthToken, note)
 	if err != nil {
-		fmt.Println("Error when saving the note to server:", err)
-		return
+		return errors.New("Error when saving the note to server: " + err.Error())
 	}
+	return nil
 }
 
 // SaveNewNote pushes the new note to the server.
-func SaveNewNote(n *Note) {
+func SaveNewNote(n *Note) error {
 	note := types.NewNote()
 	now := types.Timestamp(time.Now().Unix() * 1000)
 	note.Created = &now
 	note.Title = &n.Title
 	if n.MD != "" {
-		body := toXML(n.MD)
+		body, err := toXML(n.MD)
+		if err != nil {
+			return nil
+		}
 		note.Content = &body
 	} else {
 		body := XMLHeader + "<en-note></en-note>"
@@ -210,19 +227,23 @@ func SaveNewNote(n *Note) {
 	}
 	ns := user.GetNoteStore()
 	if _, err := ns.CreateNote(user.AuthToken, note); err != nil {
-		fmt.Println("Error when creating the note:", err)
-		return
+		return errors.New("Error when creating the note: " + err.Error())
 	}
+	return nil
 }
 
-func toXML(mdBody string) string {
+func toXML(mdBody string) (string, error) {
 	b := []byte("")
 	content := bytes.NewBuffer(b)
 	content.WriteString(XMLHeader)
 	content.WriteString("<en-note>")
-	content.Write(markdown.ToXML(mdBody))
+	encodedBody, err := markdown.ToXML(mdBody)
+	if err != nil {
+		return "", err
+	}
+	content.Write(encodedBody)
 	content.WriteString("</en-note>")
-	return content.String()
+	return content.String(), nil
 }
 
 func init() {

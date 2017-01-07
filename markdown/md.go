@@ -17,9 +17,21 @@
 
 package markdown
 
-import "github.com/russross/blackfriday"
+import (
+	"errors"
+
+	"github.com/russross/blackfriday"
+)
+
+// ErrEmptyConvertedBody is returned if the decoder returns an empty body when content was passed in
+// to decode. This means the decoding failed due to a issue in the content.
+var ErrEmptyConvertedBody = errors.New("markdown decoding failed and returned an empty body")
 
 // ToXML converts the markdown body to Evernote's xml body style.
-func ToXML(mdBody string) []byte {
-	return blackfriday.MarkdownCommon([]byte(mdBody))
+func ToXML(mdBody string) ([]byte, error) {
+	b := blackfriday.MarkdownCommon([]byte(mdBody))
+	if len(b) == 0 && mdBody != "" {
+		return b, ErrEmptyConvertedBody
+	}
+	return b, nil
 }

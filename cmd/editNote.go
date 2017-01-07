@@ -70,7 +70,12 @@ with the notebook flag.`,
 		}
 
 		if title == "" && notebook == "" {
-			editNote(args[0])
+			verify, err := cmd.Flags().GetBool("verify-content-length")
+			if err != nil {
+				fmt.Println("Error when parsing verify content length flag:", err)
+				return
+			}
+			editNote(args[0], verify)
 		}
 	},
 }
@@ -79,9 +84,10 @@ func init() {
 	noteCmd.AddCommand(editNoteCmd)
 	editNoteCmd.Flags().StringP("title", "t", "", "Change the note title to.")
 	editNoteCmd.Flags().StringP("notebook", "b", "", "Move the note to notebook.")
+	editNoteCmd.Flags().Bool("verify-content-length", false, "Verifies that the content length on the server matches content length saved.")
 }
 
-func editNote(title string) {
+func editNote(title string, verifyLength bool) {
 	n := evernote.GetNoteWithContent(title)
 	n.MDHash = md5.Sum([]byte(n.Title + "\n\n" + n.MD))
 	filename := string(n.GUID) + ".md"
@@ -101,11 +107,50 @@ func editNote(title string) {
 		fmt.Println("Error parsing the changes:", err)
 		return
 	}
-	evernote.SaveChanges(n)
+	err = evernote.SaveChanges(n)
+	if err != nil {
+		fmt.Println("Error when saving file:", err)
+		saveRecoveredNote(n)
+	}
+	if verifyLength {
+		verifyNoteContent(n)
+	}
+}
+
+func verifyNoteContent(n *evernote.Note) {
+	fmt.Println("Verifying that note content was saved.")
+	saved, err := evernote.GetNoteByGUID(n.GUID)
+	if err != nil {
+		fmt.Println("Error when getting saved note from server:", err)
+		fmt.Println("Saving note for just in case...")
+		saveRecoveredNote(n)
+		return
+	}
+	if len(n.Body) != len(saved.Body) {
+		fmt.Println("Length of the note body on the server doesn't match the body length submitted. Saving recovered note...")
+		saveRecoveredNote(n)
+		return
+	}
+	fmt.Println("Content length okay.")
+}
+
+func saveRecoveredNote(n *evernote.Note) {
+	tmpDir := config.GetCacheFolder()
+	fp := filepath.Join(tmpDir, "recovered.md")
+	f := createTempFile(fp)
+	if f == nil {
+		fmt.Println("Error when creating recovered file")
+		return
+	}
+	defer f.Close()
+	f.WriteString(n.Title + "\n\n" + n.MD)
+	if err := f.Sync(); err != nil {
+		fmt.Println("Error when syncing content to disk:", err)
+		return
+	}
 }
 
 func createTmpFileAndEdit(filename, title, content string) ([]byte, error) {
-	//tempDir := os.TempDir()
 	tempDir := config.GetCacheFolder()
 	if tempDir == "" {
 		return nil, errors.New("no valid temp folder")
@@ -138,15 +183,12 @@ func createTmpFileAndEdit(filename, title, content string) ([]byte, error) {
 func createTempFile(fp string) *os.File {
 	f, err := os.OpenFile(fp, os.O_CREATE, 0600)
 	if err != nil {
-		fmt.Println("Error creating temp file:", err)
-		f.Close()
-		return nil
+		panic("Error creating temp file: " + err.Error())
 	}
 	f.Close()
 	f, err = os.OpenFile(fp, os.O_RDWR, 0600)
 	if err != nil {
-		fmt.Println("Error when opening temp file:", err)
-		return nil
+		panic("Error when opening temp file: " + err.Error())
 	}
 	return f
 }
