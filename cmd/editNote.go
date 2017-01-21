@@ -52,6 +52,11 @@ with the notebook flag.`,
 			fmt.Println("Error, a note has to be given.")
 			return
 		}
+		raw, err := cmd.Flags().GetBool("raw")
+		if err != nil {
+			fmt.Println("Error when paring raw flag:", err)
+			return
+		}
 		title, err := cmd.Flags().GetString("title")
 		if err != nil {
 			fmt.Println("Error parsing the title:", err)
@@ -70,7 +75,7 @@ with the notebook flag.`,
 		}
 
 		if title == "" && notebook == "" {
-			editNote(args[0])
+			editNote(args[0], raw)
 		}
 	},
 }
@@ -79,13 +84,23 @@ func init() {
 	noteCmd.AddCommand(editNoteCmd)
 	editNoteCmd.Flags().StringP("title", "t", "", "Change the note title to.")
 	editNoteCmd.Flags().StringP("notebook", "b", "", "Move the note to notebook.")
+	editNoteCmd.Flags().Bool("raw", false, "Use raw content instead of markdown version.")
 }
 
-func editNote(title string) {
+func editNote(title string, raw bool) {
 	n := evernote.GetNoteWithContent(title)
 	n.MDHash = md5.Sum([]byte(n.Title + "\n\n" + n.MD))
+	if raw {
+		n.MDHash = md5.Sum([]byte(n.Title + "\n\n" + n.Body))
+	}
 	filename := string(n.GUID) + ".md"
-	b, err := createTmpFileAndEdit(filename, n.Title, n.MD)
+	var body string
+	if raw {
+		body = n.Body
+	} else {
+		body = n.MD
+	}
+	b, err := createTmpFileAndEdit(filename, n.Title, body)
 	if err != nil {
 		fmt.Println("Error when processing note:", err)
 		return
@@ -96,12 +111,12 @@ func editNote(title string) {
 		return
 	}
 	fmt.Println("Changes detected, saving note...")
-	err = parseFileChange(b, n)
+	err = parseFileChange(b, n, raw)
 	if err != nil {
 		fmt.Println("Error parsing the changes:", err)
 		return
 	}
-	evernote.SaveChanges(n)
+	evernote.SaveChanges(n, raw)
 }
 
 func createTmpFileAndEdit(filename, title, content string) ([]byte, error) {
@@ -151,7 +166,7 @@ func createTempFile(fp string) *os.File {
 	return f
 }
 
-func parseFileChange(b []byte, n *evernote.Note) error {
+func parseFileChange(b []byte, n *evernote.Note, raw bool) error {
 	r := bytes.NewReader(b)
 	br := bufio.NewReader(r)
 	// First line is the note title.
@@ -165,7 +180,11 @@ func parseFileChange(b []byte, n *evernote.Note) error {
 		return errors.New("error parsing note body " + err.Error())
 	}
 	n.Title = title
-	n.MD = string(bodyBytes)
+	if raw {
+		n.Body = string(bodyBytes)
+	} else {
+		n.MD = string(bodyBytes)
+	}
 	return nil
 }
 

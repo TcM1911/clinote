@@ -55,7 +55,12 @@ flag.`,
 			fmt.Println("Error when parsing notebook name:", err)
 			return
 		}
-		createNote(title, notebook, edit)
+		raw, err := cmd.Flags().GetBool("raw")
+		if err != nil {
+			fmt.Println("Error when parsing raw parameter:", err)
+			return
+		}
+		createNote(title, notebook, edit, raw)
 	},
 }
 
@@ -64,9 +69,10 @@ func init() {
 	newNoteCmd.Flags().StringP("title", "t", "", "Note title.")
 	newNoteCmd.Flags().StringP("notebook", "b", "", "The notebook to save note to, if not set the default notebook will be used.")
 	newNoteCmd.Flags().BoolP("edit", "e", false, "Open note in the editor.")
+	newNoteCmd.Flags().Bool("raw", false, "Edit the content in raw mode.")
 }
 
-func createNote(title, notebook string, edit bool) {
+func createNote(title, notebook string, edit, raw bool) {
 	note := new(evernote.Note)
 	if edit {
 		var t string
@@ -75,12 +81,18 @@ func createNote(title, notebook string, edit bool) {
 		} else {
 			t = title
 		}
-		b, err := createTmpFileAndEdit("new-note.md", t, "<CONTENT>")
+		var b []byte
+		var err error
+		if raw {
+			b, err = createTmpFileAndEdit("new-note.xml", t, "")
+		} else {
+			b, err = createTmpFileAndEdit("new-note.md", t, "<CONTENT>")
+		}
 		if err != nil {
 			fmt.Println("Error when processing note:", err)
 			return
 		}
-		if err = parseFileChange(b, note); err != nil {
+		if err = parseFileChange(b, note, raw); err != nil {
 			fmt.Println("Error processing changes:", err)
 			return
 		}
@@ -96,5 +108,5 @@ func createNote(title, notebook string, edit bool) {
 		}
 		note.Notebook = nb
 	}
-	evernote.SaveNewNote(note)
+	evernote.SaveNewNote(note, raw)
 }

@@ -131,14 +131,14 @@ func GetNoteWithContent(title string) *Note {
 }
 
 // SaveChanges updates the changes to the note on the server.
-func SaveChanges(n *Note) {
-	saveChanges(n, true)
+func SaveChanges(n *Note, useRawContent bool) {
+	saveChanges(n, true, useRawContent)
 }
 
 func ChangeTitle(old, new string) {
 	n := GetNote(old, "")
 	n.Title = new
-	saveChanges(n, false)
+	saveChanges(n, false, false)
 }
 
 func MoveNote(noteTitle, notebookName string) {
@@ -149,7 +149,7 @@ func MoveNote(noteTitle, notebookName string) {
 		return
 	}
 	n.Notebook.GUID = b.GUID
-	saveChanges(n, false)
+	saveChanges(n, false, false)
 }
 
 func DeleteNote(title, notebook string) {
@@ -162,7 +162,7 @@ func DeleteNote(title, notebook string) {
 	}
 }
 
-func saveChanges(n *Note, updateContent bool) {
+func saveChanges(n *Note, updateContent, useRawContent bool) {
 	cacheMu.Lock()
 	note, ok := cache[n.GUID]
 	if !ok {
@@ -175,8 +175,11 @@ func saveChanges(n *Note, updateContent bool) {
 	cacheMu.Unlock()
 	note.Title = &n.Title
 	if updateContent {
-		xmlBody := toXML(n.MD)
-		note.Content = &xmlBody
+		body := toXML(n.MD)
+		if useRawContent {
+			body = fmt.Sprintf("%s<en-note>%s</en-note>", XMLHeader, n.Body)
+		}
+		note.Content = &body
 	}
 
 	notebookGUID := string(n.Notebook.GUID)
@@ -193,18 +196,20 @@ func saveChanges(n *Note, updateContent bool) {
 }
 
 // SaveNewNote pushes the new note to the server.
-func SaveNewNote(n *Note) {
+func SaveNewNote(n *Note, raw bool) {
 	note := types.NewNote()
 	now := types.Timestamp(time.Now().Unix() * 1000)
 	note.Created = &now
 	note.Title = &n.Title
-	if n.MD != "" {
-		body := toXML(n.MD)
-		note.Content = &body
+	var body string
+	if !raw && n.MD != "" {
+		body = toXML(n.MD)
+	} else if raw {
+		body = fmt.Sprintf("%s<en-note>%s</en-note>", XMLHeader, n.Body)
 	} else {
-		body := XMLHeader + "<en-note></en-note>"
-		note.Content = &body
+		body = XMLHeader + "<en-note></en-note>"
 	}
+	note.Content = &body
 	if n.Notebook != nil && n.Notebook.Name != "" {
 		guid := string(n.Notebook.GUID)
 		note.NotebookGuid = &guid
