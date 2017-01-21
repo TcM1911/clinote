@@ -1,0 +1,105 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "B6ZUzckOOwd699eDnJIPqDiWB0I=",
+			"path": "github.com/apache/thrift/lib/go/thrift",
+			"revision": "c3a3f653b66b7cccf61c936dc349de27b8a18899",
+			"revisionTime": "2016-07-22T21:26:53Z"
+		},
+		{
+			"checksumSHA1": "5rPfda8jFccr3A6heL+JAmi9K9g=",
+			"origin": "github.com/stretchr/testify/vendor/github.com/davecgh/go-spew/spew",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "6fe211e493929a8aac0469b93f28b1d0688a9a3a",
+			"revisionTime": "2016-03-05T16:54:46Z"
+		},
+		{
+			"checksumSHA1": "YV/9c+bEjrHXhQepOyxY2/r5Q34=",
+			"path": "github.com/lunny/html2md",
+			"revision": "7b7960a64564188cf224bd2ea5a19386f8bca2ab",
+			"revisionTime": "2015-11-03T06:14:08Z"
+		},
+		{
+			"checksumSHA1": "4nd5J4bz9bwh5XDRdTZRB78T2tU=",
+			"path": "github.com/mrjones/oauth",
+			"revision": "88427e754deb856c87036b0f91c069bc4f6a1411",
+			"revisionTime": "2016-10-24T00:09:04Z"
+		},
+		{
+			"checksumSHA1": "zKKp5SZ3d3ycKe4EKMNT0BqAWBw=",
+			"origin": "github.com/stretchr/testify/vendor/github.com/pmezard/go-difflib/difflib",
+			"path": "github.com/pmezard/go-difflib/difflib",
+			"revision": "6fe211e493929a8aac0469b93f28b1d0688a9a3a",
+			"revisionTime": "2016-03-05T16:54:46Z"
+		},
+		{
+			"checksumSHA1": "RT2uHaSE2t3MbXFSShOUTrG8qXQ=",
+			"path": "github.com/russross/blackfriday",
+			"revision": "006144af03eeeff1037240a71865a9fd61f1c25f",
+			"revisionTime": "2016-01-24T11:12:56Z"
+		},
+		{
+			"checksumSHA1": "XXTR/ftEYSqQn4+Y7wNfiJJmq9U=",
+			"path": "github.com/shurcooL/sanitized_anchor_name",
+			"revision": "10ef21a441db47d8b13ebcc5fd2310f636973c77",
+			"revisionTime": "2015-10-28T00:19:15Z"
+		},
+		{
+			"checksumSHA1": "FZ0r4TzEy9UxXLkFVXFygApni4M=",
+			"path": "github.com/spf13/cobra",
+			"revision": "9495bc009a56819bdb0ddbc1a373e29c140bc674",
+			"revisionTime": "2016-11-16T13:20:53Z"
+		},
+		{
+			"checksumSHA1": "GxPD7A0NjMDom1xte0mghkpzr0E=",
+			"path": "github.com/spf13/pflag",
+			"revision": "5ccb023bc27df288a957c5e994cd44fd19619465",
+			"revisionTime": "2016-10-24T13:13:51Z"
+		},
+		{
+			"checksumSHA1": "Bn333k9lTndxU3D6n/G5c+GMcYY=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "6fe211e493929a8aac0469b93f28b1d0688a9a3a",
+			"revisionTime": "2016-03-05T16:54:46Z"
+		},
+		{
+			"checksumSHA1": "2xyEDTr6otwEXH6tZnA5yAxz62Y=",
+			"path": "github.com/tcm1911/evernote-sdk-golang/client",
+			"revision": "d4e5ab7bfb88778b078288732dce56ccd6522334",
+			"revisionTime": "2016-12-25T16:40:08Z"
+		},
+		{
+			"checksumSHA1": "ELg9zdHH7CVEtuM639GHG2pbOSU=",
+			"path": "github.com/tcm1911/evernote-sdk-golang/errors",
+			"revision": "d4e5ab7bfb88778b078288732dce56ccd6522334",
+			"revisionTime": "2016-12-25T16:40:08Z"
+		},
+		{
+			"checksumSHA1": "O9vt4V3qGkoP0WbpoShdZDtZ62M=",
+			"path": "github.com/tcm1911/evernote-sdk-golang/limits",
+			"revision": "d4e5ab7bfb88778b078288732dce56ccd6522334",
+			"revisionTime": "2016-12-25T16:40:08Z"
+		},
+		{
+			"checksumSHA1": "ks68eKrbDodG+EoIvJ165XUt3QU=",
+			"path": "github.com/tcm1911/evernote-sdk-golang/notestore",
+			"revision": "d4e5ab7bfb88778b078288732dce56ccd6522334",
+			"revisionTime": "2016-12-25T16:40:08Z"
+		},
+		{
+			"checksumSHA1": "zy6fsduMqhZbyUUxk/rGfQw3Qz8=",
+			"path": "github.com/tcm1911/evernote-sdk-golang/types",
+			"revision": "d4e5ab7bfb88778b078288732dce56ccd6522334",
+			"revisionTime": "2016-12-25T16:40:08Z"
+		},
+		{
+			"checksumSHA1": "bd5uz0FA8Pm7QQOgA6HNqz8umnI=",
+			"path": "github.com/tcm1911/evernote-sdk-golang/userstore",
+			"revision": "d4e5ab7bfb88778b078288732dce56ccd6522334",
+			"revisionTime": "2016-12-25T16:40:08Z"
+		}
+	],
+	"rootPath": "github.com/tcm1911/clinote"
+}
