@@ -22,6 +22,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -124,7 +125,7 @@ func GetNoteWithContent(title string) *Note {
 		fmt.Println("Error when downloading note content:", err)
 		os.Exit(1)
 	}
-	err = xml.Unmarshal([]byte(content), &n)
+	decodeXML(content, n)
 	n.MD = markdown.ToHTML(n.Body)
 	return n
 }
@@ -223,6 +224,18 @@ func toXML(mdBody string) string {
 	content.Write(markdown.ToXML(mdBody))
 	content.WriteString("</en-note>")
 	return content.String()
+}
+
+func decodeXML(content string, v interface{}) {
+	d := xml.NewDecoder(strings.NewReader(content))
+	d.Strict = false
+	d.Entity = xml.HTMLEntity
+	d.AutoClose = xml.HTMLAutoClose
+	err := d.Decode(&v)
+	if err != nil {
+		fmt.Println("Error when decoding note content:", err)
+		os.Exit(1)
+	}
 }
 
 func init() {
