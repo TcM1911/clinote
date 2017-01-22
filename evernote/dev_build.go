@@ -17,7 +17,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package user
+package evernote
 
 func init() {
 	devBuild = true

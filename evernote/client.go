@@ -16,7 +16,7 @@
  , 2016
 */
 
-package user
+package evernote
 
 import (
 	"fmt"

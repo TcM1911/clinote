@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/tcm1911/clinote/markdown"
-	"github.com/tcm1911/clinote/user"
 	"github.com/tcm1911/evernote-sdk-golang/notestore"
 	"github.com/tcm1911/evernote-sdk-golang/types"
 )
@@ -70,7 +69,7 @@ type Note struct {
 // If the notebook is an empty string, the first matching note will
 // be returned.
 func GetNote(title, notebook string) *Note {
-	ns := user.GetNoteStore()
+	ns := GetNoteStore()
 	filter := notestore.NewNoteFilter()
 	if notebook != "" {
 		nb, err := findNotebook(notebook)
@@ -82,7 +81,7 @@ func GetNote(title, notebook string) *Note {
 		filter.NotebookGuid = &nbGUID
 	}
 	filter.Words = &title
-	notes, err := ns.FindNotes(user.AuthToken, filter, 0, 20)
+	notes, err := ns.FindNotes(AuthToken, filter, 0, 20)
 	if err != nil {
 		fmt.Println("Error when search for the note:", err)
 		os.Exit(1)
@@ -119,8 +118,8 @@ func convert(note *types.Note) *Note {
 // GetNoteWithContent returns the note with content from the user's notestore.
 func GetNoteWithContent(title string) *Note {
 	n := GetNote(title, "")
-	ns := user.GetNoteStore()
-	content, err := ns.GetNoteContent(user.AuthToken, n.GUID)
+	ns := GetNoteStore()
+	content, err := ns.GetNoteContent(AuthToken, n.GUID)
 	if err != nil {
 		fmt.Println("Error when downloading note content:", err)
 		os.Exit(1)
@@ -154,8 +153,8 @@ func MoveNote(noteTitle, notebookName string) {
 
 func DeleteNote(title, notebook string) {
 	n := GetNote(title, notebook)
-	ns := user.GetNoteStore()
-	_, err := ns.DeleteNote(user.AuthToken, n.GUID)
+	ns := GetNoteStore()
+	_, err := ns.DeleteNote(AuthToken, n.GUID)
 	if err != nil {
 		fmt.Println("Error when removing the note:", err)
 		return
@@ -187,8 +186,8 @@ func saveChanges(n *Note, updateContent, useRawContent bool) {
 
 	now := types.Timestamp(time.Now().Unix() * 1000)
 	note.Updated = &now
-	ns := user.GetNoteStore()
-	_, err := ns.UpdateNote(user.AuthToken, note)
+	ns := GetNoteStore()
+	_, err := ns.UpdateNote(AuthToken, note)
 	if err != nil {
 		fmt.Println("Error when saving the note to server:", err)
 		return
@@ -214,8 +213,8 @@ func SaveNewNote(n *Note, raw bool) {
 		guid := string(n.Notebook.GUID)
 		note.NotebookGuid = &guid
 	}
-	ns := user.GetNoteStore()
-	if _, err := ns.CreateNote(user.AuthToken, note); err != nil {
+	ns := GetNoteStore()
+	if _, err := ns.CreateNote(AuthToken, note); err != nil {
 		fmt.Println("Error when creating the note:", err)
 		return
 	}

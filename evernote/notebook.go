@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tcm1911/clinote/user"
 	"github.com/tcm1911/evernote-sdk-golang/types"
 )
 
@@ -50,8 +49,8 @@ func UpdateNotebook(name string, notebook *Notebook) {
 		fmt.Println("Changing notebook stack to", notebook.Stack)
 		b.Stack = &notebook.Stack
 	}
-	ns := user.GetNoteStore()
-	if _, err := ns.UpdateNotebook(user.AuthToken, b); err != nil {
+	ns := GetNoteStore()
+	if _, err := ns.UpdateNotebook(AuthToken, b); err != nil {
 		fmt.Println("Error when updating the notebook:", err)
 		return
 	}
@@ -103,6 +102,6 @@ func GetNotebooks() ([]*Notebook, error) {
 }
 
 func getNotebooks() ([]*types.Notebook, error) {
-	ns := user.GetNoteStore()
-	return ns.ListNotebooks(user.AuthToken)
+	ns := GetNoteStore()
+	return ns.ListNotebooks(AuthToken)
 }
