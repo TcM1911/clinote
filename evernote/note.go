@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tcm1911/clinote/config"
 	"github.com/tcm1911/clinote/markdown"
 	"github.com/tcm1911/evernote-sdk-golang/notestore"
 	"github.com/tcm1911/evernote-sdk-golang/types"
@@ -68,11 +69,11 @@ type Note struct {
 // GetNote gets the note metadata in the notebook from the server.
 // If the notebook is an empty string, the first matching note will
 // be returned.
-func GetNote(title, notebook string) *Note {
-	ns := GetNoteStore()
+func GetNote(cfg config.Configuration, title, notebook string) *Note {
+	ns := GetNoteStore(cfg)
 	filter := notestore.NewNoteFilter()
 	if notebook != "" {
-		nb, err := findNotebook(notebook)
+		nb, err := findNotebook(cfg, notebook)
 		if err != nil {
 			fmt.Println("Error when getting the notebook:", err)
 			os.Exit(1)
@@ -116,9 +117,9 @@ func convert(note *types.Note) *Note {
 }
 
 // GetNoteWithContent returns the note with content from the user's notestore.
-func GetNoteWithContent(title string) *Note {
-	n := GetNote(title, "")
-	ns := GetNoteStore()
+func GetNoteWithContent(cfg config.Configuration, title string) *Note {
+	n := GetNote(cfg, title, "")
+	ns := GetNoteStore(cfg)
 	content, err := ns.GetNoteContent(AuthToken, n.GUID)
 	if err != nil {
 		fmt.Println("Error when downloading note content:", err)
@@ -130,30 +131,30 @@ func GetNoteWithContent(title string) *Note {
 }
 
 // SaveChanges updates the changes to the note on the server.
-func SaveChanges(n *Note, useRawContent bool) {
-	saveChanges(n, true, useRawContent)
+func SaveChanges(cfg config.Configuration, n *Note, useRawContent bool) {
+	saveChanges(cfg, n, true, useRawContent)
 }
 
-func ChangeTitle(old, new string) {
-	n := GetNote(old, "")
+func ChangeTitle(cfg config.Configuration, old, new string) {
+	n := GetNote(cfg, old, "")
 	n.Title = new
-	saveChanges(n, false, false)
+	saveChanges(cfg, n, false, false)
 }
 
-func MoveNote(noteTitle, notebookName string) {
-	n := GetNote(noteTitle, "")
-	b, err := FindNotebook(notebookName)
+func MoveNote(cfg config.Configuration, noteTitle, notebookName string) {
+	n := GetNote(cfg, noteTitle, "")
+	b, err := FindNotebook(cfg, notebookName)
 	if err != nil {
 		fmt.Println("Error when trying to retrieve notebook:", err)
 		return
 	}
 	n.Notebook.GUID = b.GUID
-	saveChanges(n, false, false)
+	saveChanges(cfg, n, false, false)
 }
 
-func DeleteNote(title, notebook string) {
-	n := GetNote(title, notebook)
-	ns := GetNoteStore()
+func DeleteNote(cfg config.Configuration, title, notebook string) {
+	n := GetNote(cfg, title, notebook)
+	ns := GetNoteStore(cfg)
 	_, err := ns.DeleteNote(AuthToken, n.GUID)
 	if err != nil {
 		fmt.Println("Error when removing the note:", err)
@@ -161,7 +162,7 @@ func DeleteNote(title, notebook string) {
 	}
 }
 
-func saveChanges(n *Note, updateContent, useRawContent bool) {
+func saveChanges(cfg config.Configuration, n *Note, updateContent, useRawContent bool) {
 	cacheMu.Lock()
 	note, ok := cache[n.GUID]
 	if !ok {
@@ -186,7 +187,7 @@ func saveChanges(n *Note, updateContent, useRawContent bool) {
 
 	now := types.Timestamp(time.Now().Unix() * 1000)
 	note.Updated = &now
-	ns := GetNoteStore()
+	ns := GetNoteStore(cfg)
 	_, err := ns.UpdateNote(AuthToken, note)
 	if err != nil {
 		fmt.Println("Error when saving the note to server:", err)
@@ -195,7 +196,7 @@ func saveChanges(n *Note, updateContent, useRawContent bool) {
 }
 
 // SaveNewNote pushes the new note to the server.
-func SaveNewNote(n *Note, raw bool) {
+func SaveNewNote(cfg config.Configuration, n *Note, raw bool) {
 	note := types.NewNote()
 	now := types.Timestamp(time.Now().Unix() * 1000)
 	note.Created = &now
@@ -213,7 +214,7 @@ func SaveNewNote(n *Note, raw bool) {
 		guid := string(n.Notebook.GUID)
 		note.NotebookGuid = &guid
 	}
-	ns := GetNoteStore()
+	ns := GetNoteStore(cfg)
 	if _, err := ns.CreateNote(AuthToken, note); err != nil {
 		fmt.Println("Error when creating the note:", err)
 		return

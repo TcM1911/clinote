@@ -21,10 +21,34 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestLogout(t *testing.T) {
+	assert := assert.New(t)
+	t.Run("Error when not logged in", func(t *testing.T) {
+		cfg := new(cfgMock)
+		cfg.getCacheFolder = func() string { return os.TempDir() }
+		err := Logout(cfg)
+		assert.Equal(ErrNotLoggedIn, err, "Wrong error message")
+	})
+}
+
+type cfgMock struct {
+	getCacheFolder func() string
+	getConfFolder  func() string
+}
+
+func (c *cfgMock) GetConfigFolder() string {
+	return c.getConfFolder()
+}
+
+func (c *cfgMock) GetCacheFolder() string {
+	return c.getCacheFolder()
+}
 
 func TestCallbackHandler(t *testing.T) {
 	assert := assert.New(t)
@@ -35,7 +59,8 @@ func TestCallbackHandler(t *testing.T) {
 	c := make(chan *callbackValues)
 	url := fmt.Sprintf("http://www.sample.com/?oauth_token=%s&&oauth_verifier=%s&&sandbox_lnb=%s", tempToken, verifier, sandbox)
 	r := httptest.NewRequest(http.MethodGet, url, nil)
-	go oathCallbackHandler(c).ServeHTTP(nil, r)
+	w := new(httptest.ResponseRecorder)
+	go oathCallbackHandler(c).ServeHTTP(w, r)
 	vals := <-c
 
 	assert.Equal(verifier, vals.Verifier)

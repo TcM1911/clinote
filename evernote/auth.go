@@ -40,18 +40,26 @@ type callbackValues struct {
 	SandboxLnb bool
 }
 
+var (
+	// ErrNotLoggedIn is returned when the user is trying to perform
+	// authenticated actions without being authenticated.
+	ErrNotLoggedIn = errors.New("your are not logged in")
+	// ErrAlreadyLoggedIn is returned if the user is trying to authenticate
+	// but is already authenticated.
+	ErrAlreadyLoggedIn = errors.New("you are already logged in")
+)
+
 // Logout removes the session stored.
-func Logout() {
-	fp := filepath.Join(config.GetCacheFolder(), "session")
+func Logout(cfg config.Configuration) error {
+	fp := filepath.Join(cfg.GetCacheFolder(), "session")
 	if !checkLogin(fp) {
-		fmt.Println("You are not logged in.")
-		return
+		return ErrNotLoggedIn
 	}
 	if err := os.Remove(fp); err != nil {
-		fmt.Println("Error when trying to remove the session file:", err)
-		return
+		return err
 	}
 	fmt.Println("Successfully logged out.")
+	return nil
 }
 
 func checkLogin(fp string) bool {
@@ -62,11 +70,10 @@ func checkLogin(fp string) bool {
 }
 
 // Login logs the user in to the server.
-func Login() bool {
-	fp := filepath.Join(config.GetCacheFolder(), "session")
+func Login(cfg config.Configuration) error {
+	fp := filepath.Join(cfg.GetCacheFolder(), "session")
 	if checkLogin(fp) {
-		fmt.Println("You are already logged in.")
-		return false
+		return ErrAlreadyLoggedIn
 	}
 	c := make(chan *callbackValues)
 	http.HandleFunc("/", oathCallbackHandler(c))
@@ -74,8 +81,7 @@ func Login() bool {
 	defer listener.Close()
 	fmt.Println("Starting callback listener on", listener.Addr().String())
 	if err != nil {
-		fmt.Println("Error when starting callback listener:", err)
-		return false
+		return err
 	}
 	go func() {
 		err = http.Serve(listener, nil)
@@ -85,36 +91,31 @@ func Login() bool {
 		}
 	}()
 	callbackURL := fmt.Sprintf("http://%s/", listener.Addr().String())
-	tmpToken, loginURL, err := getTempToken(callbackURL)
+	tmpToken, loginURL, err := getTempToken(cfg, callbackURL)
 	if err != nil {
-		fmt.Println("Error when getting request temporary token:", err)
-		return false
+		return err
 	}
 	go tryOpenLoginInBrowser(loginURL)
 	fmt.Println("Waiting for access...")
 	callback := <-c
 	if callback.TempToken != tmpToken.Token {
-		fmt.Println("Temporary token doesn't match, aborting...")
-		return false
+		return errors.New("temporary token mismatch")
 	}
 	if callback.Verifier == "" {
-		fmt.Println("Access revoked.")
-		return false
+		return errors.New("access revoked")
 	}
-	token, err := getAuthToken(tmpToken, callback.Verifier)
+	token, err := getAuthToken(cfg, tmpToken, callback.Verifier)
 	if err != nil {
-		fmt.Println("Error when retrieving auth token:", err)
-		return false
+		return err
 	}
-	if err = saveToken(token); err != nil {
-		fmt.Println("Saving to file failed:", err)
-		return false
+	if err = saveToken(cfg, token); err != nil {
+		return err
 	}
-	return true
+	return nil
 }
 
-func saveToken(token string) error {
-	dir := config.GetCacheFolder()
+func saveToken(cfg config.Configuration, token string) error {
+	dir := cfg.GetCacheFolder()
 	fp := filepath.Join(dir, "session")
 	if _, err := os.Stat(fp); os.IsNotExist(err) {
 		f, err := os.OpenFile(fp, os.O_CREATE, 0600)
@@ -134,8 +135,8 @@ func saveToken(token string) error {
 	return nil
 }
 
-func getAuthToken(tmpToken *oauth.RequestToken, verifier string) (string, error) {
-	client := GetClient()
+func getAuthToken(cfg config.Configuration, tmpToken *oauth.RequestToken, verifier string) (string, error) {
+	client := GetClient(cfg)
 	token, err := client.GetAuthorizedToken(tmpToken, verifier)
 	if err != nil {
 		return "", err
@@ -154,8 +155,8 @@ func tryOpenLoginInBrowser(url string) {
 	cmd.Run()
 }
 
-func getTempToken(callback string) (*oauth.RequestToken, string, error) {
-	client := GetClient()
+func getTempToken(cfg config.Configuration, callback string) (*oauth.RequestToken, string, error) {
+	client := GetClient(cfg)
 	token, url, err := client.GetRequestToken(callback)
 	return token, url, err
 }

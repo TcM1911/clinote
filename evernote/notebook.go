@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/tcm1911/clinote/config"
 	"github.com/tcm1911/evernote-sdk-golang/types"
 )
 
@@ -35,8 +36,8 @@ type Notebook struct {
 }
 
 // UpdateNotebook updates the notebook.
-func UpdateNotebook(name string, notebook *Notebook) {
-	b, err := findNotebook(name)
+func UpdateNotebook(cfg config.Configuration, name string, notebook *Notebook) {
+	b, err := findNotebook(cfg, name)
 	if err != nil {
 		fmt.Println("Error when looking for", name, ":", err)
 		return
@@ -49,7 +50,7 @@ func UpdateNotebook(name string, notebook *Notebook) {
 		fmt.Println("Changing notebook stack to", notebook.Stack)
 		b.Stack = &notebook.Stack
 	}
-	ns := GetNoteStore()
+	ns := GetNoteStore(cfg)
 	if _, err := ns.UpdateNotebook(AuthToken, b); err != nil {
 		fmt.Println("Error when updating the notebook:", err)
 		return
@@ -59,8 +60,8 @@ func UpdateNotebook(name string, notebook *Notebook) {
 
 // FindNotebook gets the notebook matching with the name.
 // If no notebook is found, nil is returned.
-func FindNotebook(name string) (*Notebook, error) {
-	b, err := findNotebook(name)
+func FindNotebook(cfg config.Configuration, name string) (*Notebook, error) {
+	b, err := findNotebook(cfg, name)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +72,8 @@ func FindNotebook(name string) (*Notebook, error) {
 	return book, nil
 }
 
-func findNotebook(name string) (*types.Notebook, error) {
-	bs, err := getNotebooks()
+func findNotebook(cfg config.Configuration, name string) (*types.Notebook, error) {
+	bs, err := getNotebooks(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +86,8 @@ func findNotebook(name string) (*types.Notebook, error) {
 }
 
 // GetNotebooks returns all the user's notebooks.
-func GetNotebooks() ([]*Notebook, error) {
-	books, err := getNotebooks()
+func GetNotebooks(cfg config.Configuration) ([]*Notebook, error) {
+	books, err := getNotebooks(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +102,7 @@ func GetNotebooks() ([]*Notebook, error) {
 	return bs, nil
 }
 
-func getNotebooks() ([]*types.Notebook, error) {
-	ns := GetNoteStore()
+func getNotebooks(cfg config.Configuration) ([]*types.Notebook, error) {
+	ns := GetNoteStore(cfg)
 	return ns.ListNotebooks(AuthToken)
 }

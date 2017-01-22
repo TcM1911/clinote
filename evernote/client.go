@@ -37,8 +37,8 @@ var setup sync.Once
 var devBuild = false
 
 // GetNoteStore returns a notestore client for the user.
-func GetNoteStore() *notestore.NoteStoreClient {
-	setupClient()
+func GetNoteStore(cfg config.Configuration) *notestore.NoteStoreClient {
+	setupClient(cfg)
 	if AuthToken == "" {
 		fmt.Println("No valid token. Please login again.")
 		os.Exit(1)
@@ -52,12 +52,12 @@ func GetNoteStore() *notestore.NoteStoreClient {
 }
 
 // GetClient returns the evernote client.
-func GetClient() *client.EvernoteClient {
-	setupClient()
+func GetClient(cfg config.Configuration) *client.EvernoteClient {
+	setupClient(cfg)
 	return evernote
 }
 
-func setupClient() {
+func setupClient(cfg config.Configuration) {
 	setup.Do(func() {
 		env := client.PRODUCTION
 		if devBuild {
@@ -68,7 +68,7 @@ func setupClient() {
 		if devToken != "" {
 			AuthToken = devToken
 		} else {
-			cacheDir := config.GetCacheFolder()
+			cacheDir := cfg.GetCacheFolder()
 			fp := filepath.Join(cacheDir, "session")
 			if _, err := os.Stat(fp); os.IsNotExist(err) {
 				return
