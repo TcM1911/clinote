@@ -19,7 +19,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/tcm1911/clinote/user"
+	"github.com/tcm1911/clinote/evernote"
 )
 
 var logoutCmd = &cobra.Command{
@@ -28,7 +28,7 @@ var logoutCmd = &cobra.Command{
 	Long: `
 Logs a user out by removing the session token.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		user.Logout()
+		evernote.Logout()
 	},
 }
 

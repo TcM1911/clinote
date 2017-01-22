@@ -25,7 +25,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/tcm1911/clinote/evernote"
-	"github.com/tcm1911/clinote/user"
 	"github.com/tcm1911/evernote-sdk-golang/notestore"
 	"github.com/tcm1911/evernote-sdk-golang/types"
 )
@@ -83,10 +82,10 @@ func findNotes(cmd *cobra.Command, args []string) {
 		filter.Words = &search
 	}
 
-	ns := user.GetNoteStore()
+	ns := evernote.GetNoteStore()
 
 	if searchBook != "" {
-		book, err := findNoteBook(ns, user.AuthToken, searchBook)
+		book, err := findNoteBook(ns, evernote.AuthToken, searchBook)
 		if err != nil {
 			fmt.Println("Error when trying to filter by notebook: ", err)
 			os.Exit(1)
@@ -94,7 +93,7 @@ func findNotes(cmd *cobra.Command, args []string) {
 		filter.NotebookGuid = book.GUID
 	}
 
-	list, err := ns.FindNotes(user.AuthToken, filter, 0, c)
+	list, err := ns.FindNotes(evernote.AuthToken, filter, 0, c)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -109,7 +108,7 @@ func findNotes(cmd *cobra.Command, args []string) {
 		"Title"))...)
 	for i, n := range list.GetNotes() {
 		bookGUID := types.GUID(n.GetNotebookGuid())
-		book, err := ns.GetNotebook(user.AuthToken, bookGUID)
+		book, err := ns.GetNotebook(evernote.AuthToken, bookGUID)
 		bookName := ""
 		if err != nil {
 			log.Println("Error when getting notebook name:", err)

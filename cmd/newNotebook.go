@@ -22,7 +22,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/tcm1911/clinote/user"
+	"github.com/tcm1911/clinote/evernote"
 	"github.com/tcm1911/evernote-sdk-golang/types"
 )
 
@@ -66,9 +66,9 @@ func createNotebook(cmd *cobra.Command, args []string) {
 	}
 	nb.DefaultNotebook = &d
 
-	ns := user.GetNoteStore()
+	ns := evernote.GetNoteStore()
 
-	_, err = ns.CreateNotebook(user.AuthToken, nb)
+	_, err = ns.CreateNotebook(evernote.AuthToken, nb)
 	if err != nil {
 		fmt.Println("Error when creating the notebook:", err)
 		os.Exit(1)

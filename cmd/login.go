@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/tcm1911/clinote/user"
+	"github.com/tcm1911/clinote/evernote"
 )
 
 var loginCmd = &cobra.Command{
@@ -30,7 +30,7 @@ var loginCmd = &cobra.Command{
 	Long: `
 Login authorizes CLInote to the server using OAuth.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if user.Login() {
+		if evernote.Login() {
 			fmt.Println("Authentication successful.")
 		} else {
 			fmt.Println("Authentication failed!")
