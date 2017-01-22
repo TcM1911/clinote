@@ -22,8 +22,20 @@ import (
 	"os"
 )
 
+// Configuration is the interface for a configuration struct.
+type Configuration interface {
+	// GetConfigFolder returns the folder used to store configurations.
+	GetConfigFolder() string
+	// GetCacheFolder returns the cache folder.
+	GetCacheFolder() string
+}
+
+// DefaultConfig uses shared config and cache folder with other
+// instances of DefaultConfig structs.
+type DefaultConfig struct{}
+
 // GetConfigFolder returns the folder used to store configurations.
-func GetConfigFolder() string {
+func (*DefaultConfig) GetConfigFolder() string {
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
 		// Create folder
 		if err = os.MkdirAll(configDir, os.ModeDir|0700); err != nil {
@@ -35,7 +47,7 @@ func GetConfigFolder() string {
 }
 
 // GetCacheFolder returns the folder used to cache.
-func GetCacheFolder() string {
+func (*DefaultConfig) GetCacheFolder() string {
 	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
 		// Create cache folder.
 		if err = os.MkdirAll(cacheDir, os.ModeDir|0700); err != nil {
