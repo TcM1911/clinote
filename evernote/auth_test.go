@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,6 +35,28 @@ func TestLogout(t *testing.T) {
 		cfg.getCacheFolder = func() string { return os.TempDir() }
 		err := Logout(cfg)
 		assert.Equal(ErrNotLoggedIn, err, "Wrong error message")
+	})
+	t.Run("Should logout", func(t *testing.T) {
+		tmpdir := os.TempDir()
+		folder := filepath.Join(tmpdir, "logout_test_dir")
+		if err := os.MkdirAll(folder, os.ModeDir|0700); err != nil {
+			t.Fatal(err)
+		}
+		fp := filepath.Join(folder, "session")
+		f, err := os.OpenFile(fp, os.O_CREATE, 0600)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+		cfg := new(cfgMock)
+		cfg.getCacheFolder = func() string { return folder }
+		err = Logout(cfg)
+		assert.Nil(err, "Should not return an error. Returned:", err)
+		// Clean up
+		err = os.RemoveAll(folder)
+		if err != nil {
+			t.Log("Error when removing test folder:", err.Error())
+		}
 	})
 }
 
