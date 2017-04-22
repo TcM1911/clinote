@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -109,4 +109,4 @@ func createNote(title, notebook string, edit, raw bool) {
 		note.Notebook = nb
 	}
 	evernote.SaveNewNote(note, raw)
-}
+}*/

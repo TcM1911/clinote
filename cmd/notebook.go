@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"errors"
 
 	"github.com/spf13/cobra"
@@ -49,4 +49,4 @@ func findNoteBook(ns *notestore.NoteStoreClient, token, bookName string) (*types
 		}
 	}
 	return nil, errors.New("no matching notebook")
-}
+}*/

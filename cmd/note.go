@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -55,4 +55,4 @@ func getNote(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println(n.Title, "\n\n", n.MD)
 	}
-}
+}*/

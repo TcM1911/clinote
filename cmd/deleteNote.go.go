@@ -1,4 +1,4 @@
-/*
+/*/*
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -46,4 +46,4 @@ To expunge the note you need to use the official client or the web client.`,
 func init() {
 	noteCmd.AddCommand(deleteNoteCmd)
 	deleteNoteCmd.Flags().StringP("notebook", "b", "", "The notebook of the note.")
-}
+}*/

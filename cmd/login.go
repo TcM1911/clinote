@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -40,4 +40,4 @@ Login authorizes CLInote to the server using OAuth.`,
 
 func init() {
 	userCmd.AddCommand(loginCmd)
-}
+}*/

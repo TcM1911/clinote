@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"fmt"
 	"log"
 	"os"
@@ -123,4 +123,4 @@ func findNotes(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(string(outputStr))
-}
+}*/

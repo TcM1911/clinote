@@ -12,24 +12,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
- * Copyright (C) Joakim Kennedy, 2016
+ * Copyright (C) Joakim Kennedy, 2016-2017
  */
 
 package evernote
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
-	"os"
 	"strings"
-	"sync"
-	"time"
 
-	"github.com/tcm1911/clinote/config"
 	"github.com/tcm1911/clinote/markdown"
-	"github.com/tcm1911/evernote-sdk-golang/notestore"
-	"github.com/tcm1911/evernote-sdk-golang/types"
 )
 
 const (
@@ -38,22 +34,29 @@ const (
 )
 
 var (
-	NoteFilterOrderCreated        = int32(1)
-	NoteFilterOrderUpdated        = int32(2)
-	NoteFilterOrderRelevance      = int32(3)
+	// NoteFilterOrderCreated sorts the notes by create time.
+	NoteFilterOrderCreated = int32(1)
+	// NoteFilterOrderUpdated sorts the notes by update time.
+	NoteFilterOrderUpdated = int32(2)
+	// NoteFilterOrderRelevance sorts the notes by relevance.
+	NoteFilterOrderRelevance = int32(3)
+	// NoteFilterOrderSequenceNumber sorts the notes by sequence number.
 	NoteFilterOrderSequenceNumber = int32(4)
-	NoteFilterOrderTitle          = int32(5)
+	// NoteFilterOrderTitle sorts the notes by title.
+	NoteFilterOrderTitle = int32(5)
 )
 
-var cacheMu sync.Mutex
-var cache map[types.GUID]*types.Note
+var (
+	// ErrNoNoteFound is returned if search resulted in no notes found.
+	ErrNoNoteFound = errors.New("no note found")
+)
 
 // Note is the structure of an Evernote note.
 type Note struct {
 	// Title is the note tile.
 	Title string
 	// GUID is the unique identifier.
-	GUID types.GUID
+	GUID string
 	// Body contains the body of the note.
 	Body string `xml:",innerxml"`
 	// MD is a Markdown representation of the note body.
@@ -66,141 +69,135 @@ type Note struct {
 	Notebook *Notebook
 }
 
+// NoteFilter is the search filter for notes.
+type NoteFilter struct {
+	// NotebookGUID is the GUID for the notebook to limit the search to.
+	NotebookGUID string
+	// Words can be a search string or note title.
+	Words string
+}
+
 // GetNote gets the note metadata in the notebook from the server.
 // If the notebook is an empty string, the first matching note will
 // be returned.
-func GetNote(cfg config.Configuration, title, notebook string) *Note {
-	ns := GetNoteStore(cfg)
-	filter := notestore.NewNoteFilter()
-	if notebook != "" {
-		nb, err := findNotebook(cfg, notebook)
-		if err != nil {
-			fmt.Println("Error when getting the notebook:", err)
-			os.Exit(1)
-		}
-		nbGUID := nb.GetGUID()
-		filter.NotebookGuid = &nbGUID
-	}
-	filter.Words = &title
-	notes, err := ns.FindNotes(AuthToken, filter, 0, 20)
+func GetNote(client APIClient, title, notebook string) (*Note, error) {
+	ns, err := client.GetNoteStore()
 	if err != nil {
-		fmt.Println("Error when search for the note:", err)
-		os.Exit(1)
+		return nil, err
 	}
-	var note *types.Note
-	for _, n := range notes.GetNotes() {
-		if n.GetTitle() == title {
+	filter := new(NoteFilter)
+	if notebook != "" {
+		nb, err := findNotebook(ns, notebook)
+		if err != nil {
+			return nil, err
+		}
+		filter.NotebookGUID = nb.GUID
+	}
+	filter.Words = title
+	notes, err := ns.FindNotes(filter, 0, 20)
+	if err != nil {
+		return nil, err
+	}
+	var note *Note
+	for _, n := range notes {
+		if n.Title == title {
 			note = n
-			cacheMu.Lock()
-			cache[*n.GUID] = n
-			cacheMu.Unlock()
 			break
 		}
 	}
 	if note == nil {
-		fmt.Println("Could not find a note with title", title)
-		os.Exit(1)
+		return nil, ErrNoNoteFound
 	}
-
-	return convert(note)
-}
-
-func convert(note *types.Note) *Note {
-	n := new(Note)
-	n.Title = note.GetTitle()
-	n.GUID = note.GetGUID()
-	notebook := new(Notebook)
-	notebookGUID := types.GUID(note.GetNotebookGuid())
-	n.Notebook = notebook
-	n.Notebook.GUID = notebookGUID
-	return n
+	return note, nil
 }
 
 // GetNoteWithContent returns the note with content from the user's notestore.
-func GetNoteWithContent(cfg config.Configuration, title string) *Note {
-	n := GetNote(cfg, title, "")
-	ns := GetNoteStore(cfg)
-	content, err := ns.GetNoteContent(AuthToken, n.GUID)
+func GetNoteWithContent(client APIClient, title string) (*Note, error) {
+	n, err := GetNote(client, title, "")
+	ns, err := client.GetNoteStore()
 	if err != nil {
-		fmt.Println("Error when downloading note content:", err)
-		os.Exit(1)
+		return nil, err
 	}
-	decodeXML(content, n)
+	content, err := ns.GetNoteContent(n.GUID)
+	if err != nil {
+		return nil, err
+	}
+	err = decodeXML(content, n)
+	if err != nil {
+		return nil, err
+	}
 	n.MD = markdown.ToHTML(n.Body)
-	return n
+	return n, nil
 }
 
 // SaveChanges updates the changes to the note on the server.
-func SaveChanges(cfg config.Configuration, n *Note, useRawContent bool) {
-	saveChanges(cfg, n, true, useRawContent)
+func SaveChanges(ctx context.Context, client APIClient, n *Note) error {
+	useRawContent := GetUseRawContentFromContext(ctx)
+	return saveChanges(client, n, true, useRawContent)
 }
 
-func ChangeTitle(cfg config.Configuration, old, new string) {
-	n := GetNote(cfg, old, "")
+// ChangeTitle changes the note's title.
+func ChangeTitle(client APIClient, old, new string) error {
+	n, err := GetNote(client, old, "")
+	if err != nil {
+		return err
+	}
 	n.Title = new
-	saveChanges(cfg, n, false, false)
+	return saveChanges(client, n, false, false)
 }
 
-func MoveNote(cfg config.Configuration, noteTitle, notebookName string) {
-	n := GetNote(cfg, noteTitle, "")
-	b, err := FindNotebook(cfg, notebookName)
+// MoveNote moves the note to a new notebook.
+func MoveNote(client APIClient, noteTitle, notebookName string) error {
+	n, err := GetNote(client, noteTitle, "")
 	if err != nil {
-		fmt.Println("Error when trying to retrieve notebook:", err)
-		return
+		return err
 	}
-	n.Notebook.GUID = b.GUID
-	saveChanges(cfg, n, false, false)
-}
-
-func DeleteNote(cfg config.Configuration, title, notebook string) {
-	n := GetNote(cfg, title, notebook)
-	ns := GetNoteStore(cfg)
-	_, err := ns.DeleteNote(AuthToken, n.GUID)
+	b, err := FindNotebook(client, notebookName)
 	if err != nil {
-		fmt.Println("Error when removing the note:", err)
-		return
+		return err
 	}
+	n.Notebook = b
+	return saveChanges(client, n, false, false)
 }
 
-func saveChanges(cfg config.Configuration, n *Note, updateContent, useRawContent bool) {
-	cacheMu.Lock()
-	note, ok := cache[n.GUID]
-	if !ok {
-		// No cached note, so we can't update.
-		fmt.Println("Failed to update the changes.")
-		return
+// DeleteNote moves a note from the notebook to the trash can.
+func DeleteNote(client APIClient, title, notebook string) error {
+	n, err := GetNote(client, title, notebook)
+	if err != nil {
+		return err
 	}
-	// Remove cached note.
-	delete(cache, n.GUID)
-	cacheMu.Unlock()
-	note.Title = &n.Title
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return err
+	}
+	err = ns.DeleteNote(n.GUID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func saveChanges(client APIClient, n *Note, updateContent, useRawContent bool) error {
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return err
+	}
 	if updateContent {
 		body := toXML(n.MD)
 		if useRawContent {
 			body = fmt.Sprintf("%s<en-note>%s</en-note>", XMLHeader, n.Body)
 		}
-		note.Content = &body
+		n.Body = body
 	}
-
-	notebookGUID := string(n.Notebook.GUID)
-	note.NotebookGuid = &notebookGUID
-
-	now := types.Timestamp(time.Now().Unix() * 1000)
-	note.Updated = &now
-	ns := GetNoteStore(cfg)
-	_, err := ns.UpdateNote(AuthToken, note)
+	err = ns.UpdateNote(n)
 	if err != nil {
-		fmt.Println("Error when saving the note to server:", err)
-		return
+		return err
 	}
+	return nil
 }
 
 // SaveNewNote pushes the new note to the server.
-func SaveNewNote(cfg config.Configuration, n *Note, raw bool) {
-	note := types.NewNote()
-	now := types.Timestamp(time.Now().Unix() * 1000)
-	note.Created = &now
-	note.Title = &n.Title
+func SaveNewNote(client APIClient, n *Note, raw bool) error {
 	var body string
 	if !raw && n.MD != "" {
 		body = toXML(n.MD)
@@ -209,16 +206,15 @@ func SaveNewNote(cfg config.Configuration, n *Note, raw bool) {
 	} else {
 		body = XMLHeader + "<en-note></en-note>"
 	}
-	note.Content = &body
-	if n.Notebook != nil && n.Notebook.Name != "" {
-		guid := string(n.Notebook.GUID)
-		note.NotebookGuid = &guid
+	n.Body = body
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return err
 	}
-	ns := GetNoteStore(cfg)
-	if _, err := ns.CreateNote(AuthToken, note); err != nil {
-		fmt.Println("Error when creating the note:", err)
-		return
+	if err = ns.CreateNote(n); err != nil {
+		return err
 	}
+	return nil
 }
 
 func toXML(mdBody string) string {
@@ -231,18 +227,10 @@ func toXML(mdBody string) string {
 	return content.String()
 }
 
-func decodeXML(content string, v interface{}) {
+func decodeXML(content string, v interface{}) error {
 	d := xml.NewDecoder(strings.NewReader(content))
 	d.Strict = false
 	d.Entity = xml.HTMLEntity
 	d.AutoClose = xml.HTMLAutoClose
-	err := d.Decode(&v)
-	if err != nil {
-		fmt.Println("Error when decoding note content:", err)
-		os.Exit(1)
-	}
-}
-
-func init() {
-	cache = make(map[types.GUID]*types.Note)
+	return d.Decode(&v)
 }

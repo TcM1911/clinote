@@ -17,7 +17,7 @@
 
 package cmd
 
-import "github.com/spf13/cobra"
+/*import "github.com/spf13/cobra"
 
 var userCmd = &cobra.Command{
 	Use:   "user",
@@ -30,4 +30,4 @@ var userCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(userCmd)
-}
+}*/

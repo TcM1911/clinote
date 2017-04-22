@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"github.com/spf13/cobra"
 	"github.com/tcm1911/clinote/evernote"
 )
@@ -34,4 +34,4 @@ Logs a user out by removing the session token.`,
 
 func init() {
 	userCmd.AddCommand(logoutCmd)
-}
+}*/

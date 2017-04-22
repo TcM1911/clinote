@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"bufio"
 	"bytes"
 	"crypto/md5"
@@ -198,4 +198,4 @@ func editInEditor(file string) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()
-}
+}*/

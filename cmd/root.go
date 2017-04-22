@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"fmt"
 	"os"
 
@@ -55,4 +55,4 @@ func Execute() {
 
 func init() {
 	RootCmd.Flags().Bool("version", false, "Show the version")
-}
+}*/

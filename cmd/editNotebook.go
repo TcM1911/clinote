@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -72,4 +72,4 @@ func init() {
 	notebookCmd.AddCommand(editNotebookCmd)
 	editNotebookCmd.Flags().StringP("name", "n", "", "Change notebook name to.")
 	editNotebookCmd.Flags().StringP("stack", "s", "", "Change notebook stack to.")
-}
+}*/

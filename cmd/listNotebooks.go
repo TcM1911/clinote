@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"fmt"
 	"os"
 
@@ -51,4 +51,4 @@ func listNotebooks() {
 		output = append(output, []byte(fmt.Sprintf("%d : %s\n", i+1, b.Name))...)
 	}
 	fmt.Println(string(output))
-}
+}*/

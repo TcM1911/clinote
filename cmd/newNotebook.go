@@ -17,7 +17,7 @@
 
 package cmd
 
-import (
+/*import (
 	"fmt"
 	"os"
 
@@ -73,4 +73,4 @@ func createNotebook(cmd *cobra.Command, args []string) {
 		fmt.Println("Error when creating the notebook:", err)
 		os.Exit(1)
 	}
-}
+}*/
