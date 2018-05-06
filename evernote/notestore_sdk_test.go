@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/TcM1911/evernote-sdk-golang/notestore"
+	"github.com/TcM1911/evernote-sdk-golang/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/tcm1911/evernote-sdk-golang/notestore"
-	"github.com/tcm1911/evernote-sdk-golang/types"
 )
 
 var errExpected = errors.New("expected")

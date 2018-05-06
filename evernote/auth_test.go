@@ -26,9 +26,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/TcM1911/clinote/config"
 	"github.com/mrjones/oauth"
 	"github.com/stretchr/testify/assert"
-	"github.com/tcm1911/clinote/config"
 )
 
 func TestLogout(t *testing.T) {
