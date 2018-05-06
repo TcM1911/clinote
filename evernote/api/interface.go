@@ -18,8 +18,8 @@
 // Package api provides interface for the Evernote API.
 package api
 
-import "github.com/tcm1911/evernote-sdk-golang/notestore"
-import "github.com/tcm1911/evernote-sdk-golang/types"
+import "github.com/TcM1911/evernote-sdk-golang/notestore"
+import "github.com/TcM1911/evernote-sdk-golang/types"
 
 // Notestore is the API interface for the notestore client.
 type Notestore interface {

@@ -21,7 +21,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/tcm1911/evernote-sdk-golang/types"
+	"github.com/TcM1911/evernote-sdk-golang/types"
 )
 
 var (

@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/TcM1911/clinote/config"
+	ec "github.com/TcM1911/evernote-sdk-golang/client"
+	"github.com/TcM1911/evernote-sdk-golang/notestore"
 	"github.com/mrjones/oauth"
-	"github.com/tcm1911/clinote/config"
-	ec "github.com/tcm1911/evernote-sdk-golang/client"
-	"github.com/tcm1911/evernote-sdk-golang/notestore"
 )
 
 var apiConsumer = "clinote"

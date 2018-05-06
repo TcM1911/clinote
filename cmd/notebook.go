@@ -20,9 +20,9 @@ package cmd
 /*import (
 	"errors"
 
+	"github.com/TcM1911/evernote-sdk-golang/notestore"
+	"github.com/TcM1911/evernote-sdk-golang/types"
 	"github.com/spf13/cobra"
-	"github.com/tcm1911/evernote-sdk-golang/notestore"
-	"github.com/tcm1911/evernote-sdk-golang/types"
 )
 
 var notebookCmd = &cobra.Command{

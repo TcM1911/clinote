@@ -28,7 +28,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tcm1911/clinote/config"
+	"github.com/TcM1911/clinote/config"
 )
 
 type callbackValues struct {

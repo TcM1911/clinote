@@ -21,9 +21,9 @@ package cmd
 	"fmt"
 	"os"
 
+	"github.com/TcM1911/clinote/user"
+	"github.com/TcM1911/evernote-sdk-golang/types"
 	"github.com/spf13/cobra"
-	"github.com/tcm1911/clinote/evernote"
-	"github.com/tcm1911/evernote-sdk-golang/types"
 )
 
 var newBookCmd = &cobra.Command{

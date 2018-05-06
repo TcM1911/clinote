@@ -17,7 +17,7 @@
 
 package main
 
-import "github.com/tcm1911/clinote/cmd"
+import "github.com/TcM1911/clinote/cmd"
 
 func main() {
 	cmd.Execute()

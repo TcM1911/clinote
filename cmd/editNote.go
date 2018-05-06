@@ -28,9 +28,9 @@ package cmd
 	"os/exec"
 	"path/filepath"
 
+	"github.com/TcM1911/clinote/config"
+	"github.com/TcM1911/clinote/evernote"
 	"github.com/spf13/cobra"
-	"github.com/tcm1911/clinote/config"
-	"github.com/tcm1911/clinote/evernote"
 )
 
 var editNoteCmd = &cobra.Command{

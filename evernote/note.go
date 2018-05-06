@@ -25,7 +25,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tcm1911/clinote/markdown"
+	"github.com/TcM1911/clinote/markdown"
 )
 
 const (

@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tcm1911/evernote-sdk-golang/types"
+	"github.com/TcM1911/evernote-sdk-golang/types"
 )
 
 // ErrNoCachedNote is return if the note wasn't cached and can't be
