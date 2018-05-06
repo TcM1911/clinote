@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/TcM1911/clinote/evernote"
 	"github.com/spf13/cobra"
-	"github.com/tcm1911/clinote/evernote"
 )
 
 var listNotebooksCmd = &cobra.Command{

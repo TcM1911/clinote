@@ -21,8 +21,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tcm1911/clinote/user"
-	"github.com/tcm1911/evernote-sdk-golang/types"
+	"github.com/TcM1911/clinote/user"
+	"github.com/TcM1911/evernote-sdk-golang/types"
 )
 
 // Notebook is a struct for the notebook.

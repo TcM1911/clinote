@@ -26,10 +26,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tcm1911/clinote/markdown"
-	"github.com/tcm1911/clinote/user"
-	"github.com/tcm1911/evernote-sdk-golang/notestore"
-	"github.com/tcm1911/evernote-sdk-golang/types"
+	"github.com/TcM1911/clinote/markdown"
+	"github.com/TcM1911/clinote/user"
+	"github.com/TcM1911/evernote-sdk-golang/notestore"
+	"github.com/TcM1911/evernote-sdk-golang/types"
 )
 
 const (

@@ -18,8 +18,8 @@
 package cmd
 
 import (
+	"github.com/TcM1911/clinote/user"
 	"github.com/spf13/cobra"
-	"github.com/tcm1911/clinote/user"
 )
 
 var logoutCmd = &cobra.Command{

@@ -23,11 +23,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/TcM1911/clinote/evernote"
+	"github.com/TcM1911/clinote/user"
+	"github.com/TcM1911/evernote-sdk-golang/notestore"
+	"github.com/TcM1911/evernote-sdk-golang/types"
 	"github.com/spf13/cobra"
-	"github.com/tcm1911/clinote/evernote"
-	"github.com/tcm1911/clinote/user"
-	"github.com/tcm1911/evernote-sdk-golang/notestore"
-	"github.com/tcm1911/evernote-sdk-golang/types"
 )
 
 const timeFormat = "2006-01-02"

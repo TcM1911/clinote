@@ -25,9 +25,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/tcm1911/clinote/config"
-	"github.com/tcm1911/evernote-sdk-golang/client"
-	"github.com/tcm1911/evernote-sdk-golang/notestore"
+	"github.com/TcM1911/clinote/config"
+	"github.com/TcM1911/evernote-sdk-golang/client"
+	"github.com/TcM1911/evernote-sdk-golang/notestore"
 )
 
 var evernote *client.EvernoteClient

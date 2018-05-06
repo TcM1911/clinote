@@ -27,8 +27,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/TcM1911/clinote/config"
 	"github.com/mrjones/oauth"
-	"github.com/tcm1911/clinote/config"
 )
 
 // AuthToken is the user's authentication token.
