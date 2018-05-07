@@ -20,7 +20,6 @@ package evernote
 import (
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/TcM1911/evernote-sdk-golang/types"
 )
@@ -36,7 +35,7 @@ func init() {
 	cache = make(map[types.GUID]*types.Note)
 }
 
-func createNoteType(n *Note) (*types.Note, error) {
+/*func createNoteType(n *Note) (*types.Note, error) {
 	noteMu.Lock()
 	note, ok := cache[types.GUID(n.GUID)]
 	if !ok {
@@ -54,7 +53,7 @@ func createNoteType(n *Note) (*types.Note, error) {
 	now := types.Timestamp(time.Now().Unix() * 1000)
 	note.Updated = &now
 	return note, nil
-}
+}*/
 
 func convert(note *types.Note) *Note {
 	n := new(Note)

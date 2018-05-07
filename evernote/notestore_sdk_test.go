@@ -184,6 +184,51 @@ func TestUpdateNoteSDK(t *testing.T) {
 	})
 }
 
+func TestFindNotes(t *testing.T) {
+	assert := assert.New(t)
+	expectedNote := types.NewNote()
+	GUID := types.GUID("Note GUID")
+	title := "Note title"
+	expectedNote.GUID = &GUID
+	expectedNote.Title = &title
+	nl := &notestore.NoteList{Notes: []*types.Note{expectedNote}}
+	token := "token"
+	c := &mockClient{apiToken: token}
+	ns := &Notestore{
+		client:     c,
+		evernoteNS: &mockAPI{findNote: func(string, *notestore.NoteFilter, int32, int32) (*notestore.NoteList, error) { return nl, nil }},
+	}
+	t.Run("all notebooks", func(t *testing.T) {
+		filter := &NoteFilter{Words: "search term"}
+		notes, err := ns.FindNotes(filter, 0, 20)
+		assert.NoError(err, "Should not return an error")
+		assert.Len(notes, 1, "Wrong number of notes returned.")
+		assert.Equal(title, notes[0].Title, "Wrong title")
+		assert.Equal(string(GUID), notes[0].GUID, "Wrong GUID")
+	})
+
+	t.Run("one notebook", func(t *testing.T) {
+		filter := &NoteFilter{NotebookGUID: "Book GUID"}
+		notes, err := ns.FindNotes(filter, 0, 20)
+		assert.NoError(err, "Should not return an error")
+		assert.Len(notes, 1, "Wrong number of notes returned.")
+		assert.Equal(title, notes[0].Title, "Wrong title")
+		assert.Equal(string(GUID), notes[0].GUID, "Wrong GUID")
+	})
+
+	t.Run("return error", func(t *testing.T) {
+		filter := &NoteFilter{NotebookGUID: "Book GUID"}
+		expectedErr := errors.New("expected")
+		ns.evernoteNS = &mockAPI{findNote: func(string, *notestore.NoteFilter, int32, int32) (*notestore.NoteList, error) {
+			return nil, expectedErr
+		}}
+		notes, err := ns.FindNotes(filter, 0, 20)
+		assert.Error(err, "Should return an error")
+		assert.Nil(notes, "Notes should be nil")
+		assert.Equal(expectedErr, err, "Wrong error")
+	})
+}
+
 type mockAPI struct {
 	listNotebooks  func(string) ([]*types.Notebook, error)
 	updateNotebook func(string, *types.Notebook) (int32, error)
@@ -191,6 +236,7 @@ type mockAPI struct {
 	createNote     func(string, *types.Note) (*types.Note, error)
 	deleteNote     func(string, types.GUID) (int32, error)
 	updateNote     func(string, *types.Note) (*types.Note, error)
+	findNote       func(string, *notestore.NoteFilter, int32, int32) (*notestore.NoteList, error)
 }
 
 func (a *mockAPI) ListNotebooks(apiKey string) (r []*types.Notebook, err error) {
@@ -210,7 +256,7 @@ func (a *mockAPI) CreateNote(apiKey string, note *types.Note) (r *types.Note, er
 }
 
 func (a *mockAPI) FindNotes(apiKey string, filter *notestore.NoteFilter, offset int32, maxNumNotes int32) (r *notestore.NoteList, err error) {
-	panic("not implemented")
+	return a.findNote(apiKey, filter, offset, maxNumNotes)
 }
 
 func (a *mockAPI) DeleteNote(apiKey string, guid types.GUID) (int32, error) {
