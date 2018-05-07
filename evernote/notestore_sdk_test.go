@@ -119,11 +119,26 @@ func TestCreateNoteSDK(t *testing.T) {
 	assert.Equal(notebookGUID, *saved.NotebookGuid, "Notebook GUID doesn't match")
 }
 
+func TestDeleteNoteSDK(t *testing.T) {
+	assert := assert.New(t)
+	token := "token"
+	c := &mockClient{apiToken: token}
+	notebookGUID := "Some GUID"
+	ns := &Notestore{
+		client:     c,
+		evernoteNS: &mockAPI{deleteNote: func(a string, g types.GUID) (int32, error) { return int32(0), nil }},
+	}
+
+	err := ns.DeleteNote(notebookGUID)
+	assert.NoError(err, "Should not return an error.")
+}
+
 type mockAPI struct {
 	listNotebooks  func(string) ([]*types.Notebook, error)
 	updateNotebook func(string, *types.Notebook) (int32, error)
 	createNotebook func(string, *types.Notebook) (*types.Notebook, error)
 	createNote     func(string, *types.Note) (*types.Note, error)
+	deleteNote     func(string, types.GUID) (int32, error)
 }
 
 func (a *mockAPI) ListNotebooks(apiKey string) (r []*types.Notebook, err error) {
@@ -144,4 +159,8 @@ func (a *mockAPI) CreateNote(apiKey string, note *types.Note) (r *types.Note, er
 
 func (a *mockAPI) FindNotes(apiKey string, filter *notestore.NoteFilter, offset int32, maxNumNotes int32) (r *notestore.NoteList, err error) {
 	panic("not implemented")
+}
+
+func (a *mockAPI) DeleteNote(apiKey string, guid types.GUID) (int32, error) {
+	return a.deleteNote(apiKey, guid)
 }
