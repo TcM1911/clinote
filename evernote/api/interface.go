@@ -38,4 +38,7 @@ type Notestore interface {
 	UpdateNote(authenticationToken string, note *types.Note) (r *types.Note, err error)
 	// FindNotes searches the server and returns notes matching the filter.
 	FindNotes(apiKey string, filter *notestore.NoteFilter, offset int32, maxNumNotes int32) (r *notestore.NoteList, err error)
+	// GetNoteContent returns XHTML contents of the note with the provided GUID.
+	// If the Note is found in a public notebook, the authenticationToken will be ignored (so it could be an empty string).
+	GetNoteContent(authenticationToken string, guid types.GUID) (r string, err error)
 }

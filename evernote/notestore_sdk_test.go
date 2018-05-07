@@ -229,6 +229,19 @@ func TestFindNotes(t *testing.T) {
 	})
 }
 
+func TestGetNoteContentSDK(t *testing.T) {
+	assert := assert.New(t)
+	expectedContent := "Note content"
+	c := &mockClient{apiToken: "token"}
+	ns := &Notestore{
+		client:     c,
+		evernoteNS: &mockAPI{getNoteContent: func(string, types.GUID) (string, error) { return expectedContent, nil }},
+	}
+	content, err := ns.GetNoteContent("GUID")
+	assert.NoError(err, "No error should be returned")
+	assert.Equal(expectedContent, content, "Wrong content")
+}
+
 type mockAPI struct {
 	listNotebooks  func(string) ([]*types.Notebook, error)
 	updateNotebook func(string, *types.Notebook) (int32, error)
@@ -237,6 +250,7 @@ type mockAPI struct {
 	deleteNote     func(string, types.GUID) (int32, error)
 	updateNote     func(string, *types.Note) (*types.Note, error)
 	findNote       func(string, *notestore.NoteFilter, int32, int32) (*notestore.NoteList, error)
+	getNoteContent func(string, types.GUID) (string, error)
 }
 
 func (a *mockAPI) ListNotebooks(apiKey string) (r []*types.Notebook, err error) {
@@ -265,4 +279,8 @@ func (a *mockAPI) DeleteNote(apiKey string, guid types.GUID) (int32, error) {
 
 func (a *mockAPI) UpdateNote(authenticationToken string, note *types.Note) (r *types.Note, err error) {
 	return a.updateNote(authenticationToken, note)
+}
+
+func (a *mockAPI) GetNoteContent(authenticationToken string, guid types.GUID) (r string, err error) {
+	return a.getNoteContent(authenticationToken, guid)
 }

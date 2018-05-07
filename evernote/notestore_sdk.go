@@ -121,7 +121,7 @@ func (s *Notestore) FindNotes(filter *NoteFilter, offset, count int) ([]*Note, e
 
 // GetNoteContent gets the note's content from the notestore.
 func (s *Notestore) GetNoteContent(guid string) (string, error) {
-	panic("not implemented")
+	return s.evernoteNS.GetNoteContent(s.client.GetAPIToken(), types.GUID(guid))
 }
 
 func createFilter(filter *NoteFilter) *notestore.NoteFilter {
