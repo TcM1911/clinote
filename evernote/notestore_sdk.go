@@ -88,7 +88,21 @@ func (s *Notestore) DeleteNote(guid string) error {
 
 // UpdateNote update's the note.
 func (s *Notestore) UpdateNote(note *Note) error {
-	panic("not implemented")
+	if note.GUID == "" {
+		return ErrNoGUIDSet
+	}
+	if note.Title == "" {
+		return ErrNoTitleSet
+	}
+	n := types.NewNote()
+	n.Title = &note.Title
+	guid := types.GUID(note.GUID)
+	n.GUID = &guid
+	if note.Body != "" {
+		n.Content = &note.Body
+	}
+	_, err := s.evernoteNS.UpdateNote(s.client.GetAPIToken(), n)
+	return err
 }
 
 // GetClient returns the client for the notestore.

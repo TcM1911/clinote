@@ -33,6 +33,9 @@ type Notestore interface {
 	CreateNote(apiKey string, note *types.Note) (r *types.Note, err error)
 	// DeleteNote moves a note to the trash can.
 	DeleteNote(apiKey string, guid types.GUID) (int32, error)
+	// UpdateNote submits a set of changes to a note to the service.  The provided data
+	// must include the note's guid field for identification. The note's title must also be set.
+	UpdateNote(authenticationToken string, note *types.Note) (r *types.Note, err error)
 	// FindNotes searches the server and returns notes matching the filter.
 	FindNotes(apiKey string, filter *notestore.NoteFilter, offset int32, maxNumNotes int32) (r *notestore.NoteList, err error)
 }

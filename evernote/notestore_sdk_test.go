@@ -133,12 +133,64 @@ func TestDeleteNoteSDK(t *testing.T) {
 	assert.NoError(err, "Should not return an error.")
 }
 
+func TestUpdateNoteSDK(t *testing.T) {
+	assert := assert.New(t)
+	token := "token"
+	c := &mockClient{apiToken: token}
+	ns := &Notestore{
+		client: c,
+	}
+
+	t.Run("error when no GUID", func(t *testing.T) {
+		err := ns.UpdateNote(&Note{})
+		assert.Equal(ErrNoGUIDSet, err, "Wrong error returned")
+	})
+
+	t.Run("error when no title", func(t *testing.T) {
+		err := ns.UpdateNote(&Note{GUID: "some guid"})
+		assert.Equal(ErrNoTitleSet, err, "Wrong error returned")
+	})
+
+	t.Run("Skip body if empty", func(t *testing.T) {
+		var expectedNote *types.Note
+		expectedGUID := "Expected GUID"
+		expectedTitle := "Expected Title"
+		ns.evernoteNS = &mockAPI{updateNote: func(api string, n *types.Note) (*types.Note, error) { expectedNote = n; return nil, nil }}
+		err := ns.UpdateNote(&Note{
+			Title: expectedTitle,
+			GUID:  expectedGUID,
+		})
+		assert.NoError(err, "No error should be returned")
+		assert.Equal(expectedGUID, string(expectedNote.GetGUID()), "Wrong GUID")
+		assert.Equal(expectedTitle, expectedNote.GetTitle(), "Wrong Title")
+		assert.Equal("", expectedNote.GetContent(), "Content should be empty")
+	})
+
+	t.Run("Include body if set", func(t *testing.T) {
+		var expectedNote *types.Note
+		expectedGUID := "Expected GUID"
+		expectedTitle := "Expected Title"
+		expectedContent := "This is note content"
+		ns.evernoteNS = &mockAPI{updateNote: func(api string, n *types.Note) (*types.Note, error) { expectedNote = n; return nil, nil }}
+		err := ns.UpdateNote(&Note{
+			Title: expectedTitle,
+			GUID:  expectedGUID,
+			Body:  expectedContent,
+		})
+		assert.NoError(err, "No error should be returned")
+		assert.Equal(expectedGUID, string(expectedNote.GetGUID()), "Wrong GUID")
+		assert.Equal(expectedTitle, expectedNote.GetTitle(), "Wrong Title")
+		assert.Equal(expectedContent, expectedNote.GetContent(), "Content should be empty")
+	})
+}
+
 type mockAPI struct {
 	listNotebooks  func(string) ([]*types.Notebook, error)
 	updateNotebook func(string, *types.Notebook) (int32, error)
 	createNotebook func(string, *types.Notebook) (*types.Notebook, error)
 	createNote     func(string, *types.Note) (*types.Note, error)
 	deleteNote     func(string, types.GUID) (int32, error)
+	updateNote     func(string, *types.Note) (*types.Note, error)
 }
 
 func (a *mockAPI) ListNotebooks(apiKey string) (r []*types.Notebook, err error) {
@@ -163,4 +215,8 @@ func (a *mockAPI) FindNotes(apiKey string, filter *notestore.NoteFilter, offset 
 
 func (a *mockAPI) DeleteNote(apiKey string, guid types.GUID) (int32, error) {
 	return a.deleteNote(apiKey, guid)
+}
+
+func (a *mockAPI) UpdateNote(authenticationToken string, note *types.Note) (r *types.Note, err error) {
+	return a.updateNote(authenticationToken, note)
 }

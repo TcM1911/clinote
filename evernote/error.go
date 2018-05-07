@@ -14,4 +14,8 @@ var (
 	ErrTempTokenMismatch = errors.New("temporary token mismatch")
 	// ErrAccessRevoked is returned if the user decline access.
 	ErrAccessRevoked = errors.New("access revoked")
+	// ErrNoGUIDSet is returned if the note does not have a GUID.
+	ErrNoGUIDSet = errors.New("no GUID set.")
+	// ErrNoTitleSet is returned if the not does not have a title.
+	ErrNoTitleSet = errors.New("no title set")
 )
