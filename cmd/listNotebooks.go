@@ -17,7 +17,7 @@
 
 package cmd
 
-/*import (
+import (
 	"fmt"
 	"os"
 
@@ -40,7 +40,8 @@ func init() {
 }
 
 func listNotebooks() {
-	bs, err := evernote.GetNotebooks()
+	client := defaultClient()
+	bs, err := evernote.GetNotebooks(client)
 	if err != nil {
 		fmt.Println("Error when getting notebooks:", err)
 		os.Exit(1)
@@ -51,4 +52,4 @@ func listNotebooks() {
 		output = append(output, []byte(fmt.Sprintf("%d : %s\n", i+1, b.Name))...)
 	}
 	fmt.Println(string(output))
-}*/
+}
