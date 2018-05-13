@@ -17,8 +17,9 @@
 
 package cmd
 
-/*import (
+import (
 	"fmt"
+	"os"
 
 	"github.com/TcM1911/clinote/evernote"
 	"github.com/spf13/cobra"
@@ -49,10 +50,15 @@ func getNote(cmd *cobra.Command, args []string) {
 		fmt.Println("Error when paring raw flag:", err)
 		return
 	}
-	n := evernote.GetNoteWithContent(name)
+	client := defaultClient()
+	n, err := evernote.GetNoteWithContent(client, name)
+	if err != nil {
+		fmt.Println("Error when getting the note:", err.Error())
+		os.Exit(1)
+	}
 	if raw {
 		fmt.Println(n.Title, "\n\n", n.Body)
 	} else {
 		fmt.Println(n.Title, "\n\n", n.MD)
 	}
-}*/
+}
