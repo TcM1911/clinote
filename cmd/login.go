@@ -17,10 +17,10 @@
 
 package cmd
 
-/*import (
+import (
 	"fmt"
 
-	"github.com/TcM1911/clinote/user"
+	"github.com/TcM1911/clinote/evernote"
 	"github.com/spf13/cobra"
 )
 
@@ -30,14 +30,16 @@ var loginCmd = &cobra.Command{
 	Long: `
 Login authorizes CLInote to the server using OAuth.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if evernote.Login() {
-			fmt.Println("Authentication successful.")
+		client := defaultClient()
+		err := evernote.Login(client)
+		if err == nil {
+			fmt.Println("Authentication successful!")
 		} else {
-			fmt.Println("Authentication failed!")
+			fmt.Println("Authentication failed:", err.Error())
 		}
 	},
 }
 
 func init() {
 	userCmd.AddCommand(loginCmd)
-}*/
+}
