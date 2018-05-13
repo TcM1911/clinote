@@ -17,16 +17,13 @@
 
 package cmd
 
-/*import (
+import (
 	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"github.com/TcM1911/clinote/evernote"
-	"github.com/TcM1911/clinote/user"
-	"github.com/TcM1911/evernote-sdk-golang/notestore"
-	"github.com/TcM1911/evernote-sdk-golang/types"
 	"github.com/spf13/cobra"
 )
 
@@ -53,17 +50,18 @@ The notes will be sorted by the modified time.`,
 
 func init() {
 	noteCmd.AddCommand(listNoteCmd)
-	listNoteCmd.Flags().Int32P("count", "c", 20, "How many notes to show in the result.")
+	listNoteCmd.Flags().IntP("count", "c", 20, "How many notes to show in the result.")
 	listNoteCmd.Flags().StringP("search", "s", "", "Search term.")
 	listNoteCmd.Flags().StringP("notebook", "b", "", "Restrict search to notebook.")
 }
 
 func findNotes(cmd *cobra.Command, args []string) {
+	client := defaultClient()
 
 	// Create filter
-	filter := notestore.NewNoteFilter()
-	filter.Order = &evernote.NoteFilterOrderUpdated
-	c, err := cmd.Flags().GetInt32("count")
+	filter := &evernote.NoteFilter{}
+	filter.Order = evernote.NoteFilterOrderUpdated
+	c, err := cmd.Flags().GetInt("count")
 	if err != nil {
 		fmt.Println("Error when parsing count value, using default:", err)
 		c = 20
@@ -80,48 +78,45 @@ func findNotes(cmd *cobra.Command, args []string) {
 	}
 
 	if search != "" {
-		filter.Words = &search
+		filter.Words = search
 	}
 
-	ns := evernote.GetNoteStore()
-
 	if searchBook != "" {
-		book, err := findNoteBook(ns, evernote.AuthToken, searchBook)
+		book, err := evernote.FindNotebook(client, searchBook)
 		if err != nil {
 			fmt.Println("Error when trying to filter by notebook: ", err)
 			os.Exit(1)
 		}
-		filter.NotebookGuid = book.GUID
+		filter.NotebookGUID = book.GUID
 	}
 
-	list, err := ns.FindNotes(evernote.AuthToken, filter, 0, c)
+	list, err := evernote.FindNotes(client, filter, 0, c)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	outputStr := []byte("Search request:.\n")
-	outputStr = append(outputStr, []byte(fmt.Sprintf("Found %d items\n", len(list.GetNotes())))...)
+	outputStr = append(outputStr, []byte(fmt.Sprintf("Found %d items\n", len(list)))...)
 	outputStr = append(outputStr, []byte(fmt.Sprintf("%3s : %10s | %10s | %-25s | %-25s\n",
 		"#",
 		"Created",
 		"Updated",
 		"Notebook",
 		"Title"))...)
-	for i, n := range list.GetNotes() {
-		bookGUID := types.GUID(n.GetNotebookGuid())
-		book, err := ns.GetNotebook(evernote.AuthToken, bookGUID)
+	for i, n := range list {
+		book, err := evernote.GetNotebook(client, n.Notebook.GUID)
 		bookName := ""
 		if err != nil {
 			log.Println("Error when getting notebook name:", err)
 
 		} else {
-			bookName = book.GetName()
+			bookName = book.Name
 		}
 		outputStr = append(outputStr, []byte(fmt.Sprintf("%3d : %10s | %10s | %-25s | %s\n", i+1,
-			time.Unix(int64(n.GetCreated())/1000, 0).Format(timeFormat),
-			time.Unix(int64(n.GetUpdated())/1000, 0).Format(timeFormat),
-			bookName, n.GetTitle()))...)
+			time.Unix(int64(n.Created)/1000, 0).Format(timeFormat),
+			time.Unix(int64(n.Updated)/1000, 0).Format(timeFormat),
+			bookName, n.Title))...)
 	}
 
 	fmt.Println(string(outputStr))
-}*/
+}
