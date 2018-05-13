@@ -17,7 +17,7 @@
 
 package cmd
 
-/*import (
+import (
 	"fmt"
 	"os"
 
@@ -32,8 +32,7 @@ var RootCmd = &cobra.Command{
 	Use:   "clinote",
 	Short: "CLInote is a cli client for Evernote.",
 	Long: `
-CLInote is a cli client for Evernote. The note content can
-be formatted using Markdown.`,
+CLInote is a cli client for Evernote. The note content can be formatted using Markdown.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		v, _ := cmd.Flags().GetBool("version")
 		if v {
@@ -55,4 +54,4 @@ func Execute() {
 
 func init() {
 	RootCmd.Flags().Bool("version", false, "Show the version")
-}*/
+}
