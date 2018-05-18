@@ -19,7 +19,6 @@ package evernote
 
 import (
 	"bytes"
-	"context"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -67,6 +66,10 @@ type Note struct {
 	Deleted bool
 	// Notebook the note belongs to.
 	Notebook *Notebook
+	// Created
+	Created int64
+	// Updated
+	Updated int64
 }
 
 // NoteFilter is the search filter for notes.
@@ -75,6 +78,17 @@ type NoteFilter struct {
 	NotebookGUID string
 	// Words can be a search string or note title.
 	Words string
+	// Order
+	Order int32
+}
+
+// FindNotes searches for notes.
+func FindNotes(client APIClient, filter *NoteFilter, offset int, count int) ([]*Note, error) {
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return nil, err
+	}
+	return ns.FindNotes(filter, offset, count)
 }
 
 // GetNote gets the note metadata in the notebook from the server.
@@ -131,8 +145,8 @@ func GetNoteWithContent(client APIClient, title string) (*Note, error) {
 }
 
 // SaveChanges updates the changes to the note on the server.
-func SaveChanges(ctx context.Context, client APIClient, n *Note) error {
-	useRawContent := GetUseRawContentFromContext(ctx)
+func SaveChanges(client APIClient, n *Note, useRawContent bool) error {
+	// useRawContent := GetUseRawContentFromContext(ctx)
 	return saveChanges(client, n, true, useRawContent)
 }
 
