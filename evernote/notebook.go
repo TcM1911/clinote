@@ -17,92 +17,81 @@
 
 package evernote
 
-import (
-	"errors"
-	"fmt"
-
-	"github.com/TcM1911/clinote/user"
-	"github.com/TcM1911/evernote-sdk-golang/types"
-)
-
 // Notebook is a struct for the notebook.
 type Notebook struct {
 	// Name is the notebook's name
 	Name string
 	// GUID is the notebook's GUID.
-	GUID types.GUID
+	GUID string
 	// Stack is the stack that the notebook belongs too.
 	Stack string
 }
 
 // UpdateNotebook updates the notebook.
-func UpdateNotebook(name string, notebook *Notebook) {
-	b, err := findNotebook(name)
+func UpdateNotebook(client APIClient, name string, notebook *Notebook) error {
+	ns, err := client.GetNoteStore()
 	if err != nil {
-		fmt.Println("Error when looking for", name, ":", err)
-		return
+		return err
+	}
+	b, err := findNotebook(ns, name)
+	if err != nil {
+		return err
 	}
 	if notebook.Name != "" {
-		fmt.Println("Changing notebook name to", notebook.Name)
-		b.Name = &notebook.Name
+		b.Name = notebook.Name
 	}
 	if notebook.Stack != "" {
-		fmt.Println("Changing notebook stack to", notebook.Stack)
-		b.Stack = &notebook.Stack
+		b.Stack = notebook.Stack
 	}
-	ns := user.GetNoteStore()
-	if _, err := ns.UpdateNotebook(user.AuthToken, b); err != nil {
-		fmt.Println("Error when updating the notebook:", err)
-		return
-	}
-	fmt.Println("Notebook updated.")
+	return ns.UpdateNotebook(b)
 }
 
 // FindNotebook gets the notebook matching with the name.
 // If no notebook is found, nil is returned.
-func FindNotebook(name string) (*Notebook, error) {
-	b, err := findNotebook(name)
+func FindNotebook(client APIClient, name string) (*Notebook, error) {
+	ns, err := client.GetNoteStore()
 	if err != nil {
 		return nil, err
 	}
-	book := new(Notebook)
-	book.Name = b.GetName()
-	book.GUID = b.GetGUID()
-	book.Stack = b.GetStack()
-	return book, nil
+	return findNotebook(ns, name)
 }
 
-func findNotebook(name string) (*types.Notebook, error) {
-	bs, err := getNotebooks()
+func findNotebook(ns NotestoreClient, name string) (*Notebook, error) {
+	bs, err := ns.GetAllNotebooks()
 	if err != nil {
 		return nil, err
 	}
 	for _, b := range bs {
-		if b.GetName() == name {
+		if b.Name == name {
 			return b, nil
 		}
 	}
-	return nil, errors.New("no notebook found")
+	return nil, ErrNoNotebookFound
 }
 
 // GetNotebooks returns all the user's notebooks.
-func GetNotebooks() ([]*Notebook, error) {
-	books, err := getNotebooks()
+func GetNotebooks(client APIClient) ([]*Notebook, error) {
+	ns, err := client.GetNoteStore()
 	if err != nil {
 		return nil, err
 	}
-	bs := make([]*Notebook, len(books))
-	for i, book := range books {
-		p := new(Notebook)
-		p.Name = book.GetName()
-		p.GUID = book.GetGUID()
-		p.Stack = book.GetStack()
-		bs[i] = p
-	}
-	return bs, nil
+	return ns.GetAllNotebooks()
 }
 
-func getNotebooks() ([]*types.Notebook, error) {
-	ns := user.GetNoteStore()
-	return ns.ListNotebooks(user.AuthToken)
+// GetNotebook returns a notebook from the user's notestore.
+func GetNotebook(client APIClient, guid string) (*Notebook, error) {
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return nil, err
+	}
+	return ns.GetNotebook(guid)
+}
+
+// CreateNotebook creates a new notebook.
+func CreateNotebook(client APIClient, notebook *Notebook, defaultNotebook bool) error {
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return err
+	}
+	return ns.CreateNotebook(notebook, defaultNotebook)
 }

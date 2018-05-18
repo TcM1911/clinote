@@ -18,10 +18,6 @@
 package cmd
 
 import (
-	"errors"
-
-	"github.com/TcM1911/evernote-sdk-golang/notestore"
-	"github.com/TcM1911/evernote-sdk-golang/types"
 	"github.com/spf13/cobra"
 )
 
@@ -36,17 +32,4 @@ var notebookCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(notebookCmd)
-}
-
-func findNoteBook(ns *notestore.NoteStoreClient, token, bookName string) (*types.Notebook, error) {
-	books, err := ns.ListNotebooks(token)
-	if err != nil {
-		return nil, err
-	}
-	for _, b := range books {
-		if *b.Name == bookName {
-			return b, nil
-		}
-	}
-	return nil, errors.New("no matching notebook")
 }

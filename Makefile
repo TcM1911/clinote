@@ -13,6 +13,22 @@ clean:
 	rm -f clinote
 	rm -f *.tar.gz *.tar.gz.sha256sum
 	rm -rf target
+	rm -f *.cov
+	rm -f coverage_*
+
+test_evernote:
+	go test -v ./evernote/...
+
+test:
+	go test -v ./...
+
+coverage_evernote:
+	go test -coverprofile=coverage_evernote ./evernote
+
+coverage: coverage_evernote
+	for i in $(shell ls coverage_*); do \
+	cat $$i | tail -n +2 >> profile.cov; \
+	done
 
 build_386:
 	mkdir -p target/clinote-$(VERSION)-i386

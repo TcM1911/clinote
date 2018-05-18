@@ -1,5 +1,3 @@
-// +build dev
-
 /*
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,11 +12,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
- * Copyright (C) Joakim Kennedy, 2016
+ * Copyright (C) Joakim Kennedy, 2017
  */
 
-package user
+package evernote
 
-func init() {
-	devBuild = true
+import (
+	"context"
+)
+
+const (
+	rawContentContextKey contextKey = iota
+)
+
+type contextKey int8
+
+// AddUseRawContentToContext adds the value to the context.
+func AddUseRawContentToContext(ctx context.Context, val bool) context.Context {
+	return context.WithValue(ctx, rawContentContextKey, val)
+}
+
+// GetUseRawContentFromContext get's the useRawContent from the context.
+func GetUseRawContentFromContext(ctx context.Context) bool {
+	val, ok := ctx.Value(rawContentContextKey).(bool)
+	if !ok {
+		return false
+	}
+	return val
 }

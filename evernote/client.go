@@ -12,34 +12,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
- * Copyright (C) Joakim Kennedy, 2016
- */
+ * Copyright (C) Joakim Kennedy
+ , 2016
+*/
 
-package cmd
+package evernote
 
-import (
-	"fmt"
+//var evernote *client.EvernoteClient
 
-	"github.com/TcM1911/clinote/evernote"
-	"github.com/spf13/cobra"
-)
-
-var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Login user.",
-	Long: `
-Login authorizes CLInote to the server using OAuth.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		client := defaultClient()
-		err := evernote.Login(client)
-		if err == nil {
-			fmt.Println("Authentication successful!")
-		} else {
-			fmt.Println("Authentication failed:", err.Error())
-		}
-	},
+// GetClient returns the evernote client.
+/*func GetClient(cfg config.Configuration) *client.EvernoteClient {
+	setupClient(cfg)
+	return evernote
 }
 
-func init() {
-	userCmd.AddCommand(loginCmd)
-}
+func setupClient(cfg config.Configuration) {
+
+}*/

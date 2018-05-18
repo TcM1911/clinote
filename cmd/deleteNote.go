@@ -1,4 +1,4 @@
-/*
+/*/*
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -19,6 +19,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/TcM1911/clinote/evernote"
 	"github.com/spf13/cobra"
@@ -39,7 +40,12 @@ To expunge the note you need to use the official client or the web client.`,
 			fmt.Println("Error when parsing the notebook name:", err)
 			return
 		}
-		evernote.DeleteNote(args[0], nb)
+		client := defaultClient()
+		err = evernote.DeleteNote(client, args[0], nb)
+		if err != nil {
+			fmt.Println("Error when deleting the note:", err)
+			os.Exit(1)
+		}
 	},
 }
 

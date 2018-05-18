@@ -40,7 +40,8 @@ func init() {
 }
 
 func listNotebooks() {
-	bs, err := evernote.GetNotebooks()
+	client := defaultClient()
+	bs, err := evernote.GetNotebooks(client)
 	if err != nil {
 		fmt.Println("Error when getting notebooks:", err)
 		os.Exit(1)

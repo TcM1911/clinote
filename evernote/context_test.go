@@ -12,33 +12,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
- * Copyright (C) Joakim Kennedy, 2016
+ * Copyright (C) Joakim Kennedy, 2017
  */
 
-package user
+package evernote
 
 import (
-	"fmt"
-	"net/http"
-	"net/http/httptest"
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCallbackHandler(t *testing.T) {
+func TestContext(t *testing.T) {
 	assert := assert.New(t)
-	tempToken := "internal-dev.14CD91FCE1F.687474703A2F2F6C6F63616C686F7374.6E287AD298969B6F8C0B4B1D67BCAB1D"
-	verifier := "40793F8BAE15D4E3B6DD5CA8AB4BF62F"
-	sandbox := "false"
-
-	c := make(chan *callbackValues)
-	url := fmt.Sprintf("http://www.sample.com/?oauth_token=%s&&oauth_verifier=%s&&sandbox_lnb=%s", tempToken, verifier, sandbox)
-	r := httptest.NewRequest(http.MethodGet, url, nil)
-	go oathCallbackHandler(c).ServeHTTP(nil, r)
-	vals := <-c
-
-	assert.Equal(verifier, vals.Verifier)
-	assert.Equal(tempToken, vals.TempToken)
-	assert.False(vals.SandboxLnb)
+	t.Run("add use raw content", func(t *testing.T) {
+		ctx := AddUseRawContentToContext(context.Background(), true)
+		assert.True(ctx.Value(rawContentContextKey).(bool), "Should return true")
+	})
+	t.Run("false if value not set", func(t *testing.T) {
+		assert.False(GetUseRawContentFromContext(context.Background()), "Should return false")
+	})
+	t.Run("return set value", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), rawContentContextKey, true)
+		val := GetUseRawContentFromContext(ctx)
+		assert.True(val, "Should return set true value")
+	})
 }

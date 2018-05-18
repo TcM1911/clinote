@@ -100,13 +100,14 @@ func createNote(title, notebook string, edit, raw bool) {
 		note.Title = title
 	}
 
+	client := defaultClient()
 	if notebook != "" {
-		nb, err := evernote.FindNotebook(notebook)
+		nb, err := evernote.FindNotebook(client, notebook)
 		if err != nil {
 			fmt.Println("Error when searching for notebook:", err)
 			return
 		}
 		note.Notebook = nb
 	}
-	evernote.SaveNewNote(note, raw)
+	evernote.SaveNewNote(client, note, raw)
 }

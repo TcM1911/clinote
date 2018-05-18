@@ -12,10 +12,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
- * Copyright (C) Joakim Kennedy, 2016
+ * Copyright (C) Joakim Kennedy, 2016-2017
  */
 
-package user
+package evernote
 
 import (
 	"errors"
@@ -26,13 +26,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/TcM1911/clinote/config"
-	"github.com/mrjones/oauth"
 )
-
-// AuthToken is the user's authentication token.
-var AuthToken string
 
 type callbackValues struct {
 	TempToken  string
@@ -41,17 +38,15 @@ type callbackValues struct {
 }
 
 // Logout removes the session stored.
-func Logout() {
-	fp := filepath.Join(config.GetCacheFolder(), "session")
+func Logout(cfg config.Configuration) error {
+	fp := filepath.Join(cfg.GetCacheFolder(), "session")
 	if !checkLogin(fp) {
-		fmt.Println("You are not logged in.")
-		return
+		return ErrNotLoggedIn
 	}
 	if err := os.Remove(fp); err != nil {
-		fmt.Println("Error when trying to remove the session file:", err)
-		return
+		return err
 	}
-	fmt.Println("Successfully logged out.")
+	return nil
 }
 
 func checkLogin(fp string) bool {
@@ -62,59 +57,47 @@ func checkLogin(fp string) bool {
 }
 
 // Login logs the user in to the server.
-func Login() bool {
-	fp := filepath.Join(config.GetCacheFolder(), "session")
+func Login(client APIClient) error {
+	fp := filepath.Join(client.GetConfig().GetCacheFolder(), "session")
 	if checkLogin(fp) {
-		fmt.Println("You are already logged in.")
-		return false
+		return ErrAlreadyLoggedIn
 	}
 	c := make(chan *callbackValues)
-	http.HandleFunc("/", oathCallbackHandler(c))
+	path := fmt.Sprintf("/%d/", time.Now().Unix())
+	http.HandleFunc(path, oathCallbackHandler(c))
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	defer listener.Close()
 	fmt.Println("Starting callback listener on", listener.Addr().String())
 	if err != nil {
-		fmt.Println("Error when starting callback listener:", err)
-		return false
+		return err
 	}
-	go func() {
-		err = http.Serve(listener, nil)
-		if err != nil {
-			fmt.Println("Error when starting listener web server:", err)
-			os.Exit(1)
-		}
-	}()
-	callbackURL := fmt.Sprintf("http://%s/", listener.Addr().String())
-	tmpToken, loginURL, err := getTempToken(callbackURL)
+	go http.Serve(listener, nil)
+	callbackURL := fmt.Sprintf("http://%s%s", listener.Addr().String(), path)
+	tmpToken, loginURL, err := client.GetRequestToken(callbackURL)
 	if err != nil {
-		fmt.Println("Error when getting request temporary token:", err)
-		return false
+		return err
 	}
 	go tryOpenLoginInBrowser(loginURL)
 	fmt.Println("Waiting for access...")
 	callback := <-c
 	if callback.TempToken != tmpToken.Token {
-		fmt.Println("Temporary token doesn't match, aborting...")
-		return false
+		return ErrTempTokenMismatch
 	}
 	if callback.Verifier == "" {
-		fmt.Println("Access revoked.")
-		return false
+		return ErrAccessRevoked
 	}
-	token, err := getAuthToken(tmpToken, callback.Verifier)
+	token, err := client.GetAuthorizedToken(tmpToken, callback.Verifier)
 	if err != nil {
-		fmt.Println("Error when retrieving auth token:", err)
-		return false
+		return err
 	}
-	if err = saveToken(token); err != nil {
-		fmt.Println("Saving to file failed:", err)
-		return false
+	if err = saveToken(client.GetConfig(), token); err != nil {
+		return err
 	}
-	return true
+	return nil
 }
 
-func saveToken(token string) error {
-	dir := config.GetCacheFolder()
+func saveToken(cfg config.Configuration, token string) error {
+	dir := cfg.GetCacheFolder()
 	fp := filepath.Join(dir, "session")
 	if _, err := os.Stat(fp); os.IsNotExist(err) {
 		f, err := os.OpenFile(fp, os.O_CREATE, 0600)
@@ -134,15 +117,6 @@ func saveToken(token string) error {
 	return nil
 }
 
-func getAuthToken(tmpToken *oauth.RequestToken, verifier string) (string, error) {
-	client := GetClient()
-	token, err := client.GetAuthorizedToken(tmpToken, verifier)
-	if err != nil {
-		return "", err
-	}
-	return token.Token, nil
-}
-
 func tryOpenLoginInBrowser(url string) {
 	browser := os.Getenv("BROWSER")
 	if browser == "" {
@@ -152,12 +126,6 @@ func tryOpenLoginInBrowser(url string) {
 	cmd := exec.Command(browser, url)
 	fmt.Printf("Opening %s in %s\n", url, browser)
 	cmd.Run()
-}
-
-func getTempToken(callback string) (*oauth.RequestToken, string, error) {
-	client := GetClient()
-	token, url, err := client.GetRequestToken(callback)
-	return token, url, err
 }
 
 func oathCallbackHandler(returnChan chan *callbackValues) http.HandlerFunc {
@@ -170,7 +138,7 @@ func oathCallbackHandler(returnChan chan *callbackValues) http.HandlerFunc {
 		if sandboxBool != "" {
 			sandbox, err := strconv.ParseBool(sandboxBool)
 			if err != nil {
-				fmt.Println("Error when parsing OAth callback request:", err)
+				fmt.Println("Error when parsing OAuth callback request:", err)
 			}
 			vals.SandboxLnb = sandbox
 		}

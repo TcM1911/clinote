@@ -1,3 +1,5 @@
+// +build dev
+
 /*
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,31 +17,8 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
-
-import (
-	"fmt"
-
-	"github.com/TcM1911/clinote/evernote"
-	"github.com/spf13/cobra"
-)
-
-var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Login user.",
-	Long: `
-Login authorizes CLInote to the server using OAuth.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		client := defaultClient()
-		err := evernote.Login(client)
-		if err == nil {
-			fmt.Println("Authentication successful!")
-		} else {
-			fmt.Println("Authentication failed:", err.Error())
-		}
-	},
-}
+package evernote
 
 func init() {
-	userCmd.AddCommand(loginCmd)
+	devBuild = true
 }

@@ -67,15 +67,20 @@ with the notebook flag.`,
 			fmt.Println("Error parsing the notebook name:", err)
 			return
 		}
+		client := defaultClient()
 		if title != "" {
-			evernote.ChangeTitle(args[0], title)
+			evernote.ChangeTitle(client, args[0], title)
 		}
 		if notebook != "" {
-			evernote.MoveNote(args[0], notebook)
+			evernote.MoveNote(client, args[0], notebook)
 		}
 
 		if title == "" && notebook == "" {
-			editNote(args[0], raw)
+			err := editNote(client, args[0], raw)
+			if err != nil {
+				fmt.Println("Error when editing the note:", err)
+				os.Exit(1)
+			}
 		}
 	},
 }
@@ -87,8 +92,11 @@ func init() {
 	editNoteCmd.Flags().Bool("raw", false, "Use raw content instead of markdown version.")
 }
 
-func editNote(title string, raw bool) {
-	n := evernote.GetNoteWithContent(title)
+func editNote(client *evernote.Client, title string, raw bool) error {
+	n, err := evernote.GetNoteWithContent(client, title)
+	if err != nil {
+		return err
+	}
 	n.MDHash = md5.Sum([]byte(n.Title + "\n\n" + n.MD))
 	if raw {
 		n.MDHash = md5.Sum([]byte(n.Title + "\n\n" + n.Body))
@@ -102,26 +110,27 @@ func editNote(title string, raw bool) {
 	}
 	b, err := createTmpFileAndEdit(filename, n.Title, body)
 	if err != nil {
-		fmt.Println("Error when processing note:", err)
-		return
+		// fmt.Println("Error when processing note:", err)
+		return err
 	}
 	hash := md5.Sum(b)
 	if hash == n.MDHash {
-		fmt.Println("No changes detected.")
-		return
+		// fmt.Println("No changes detected.")
+		return err
 	}
 	fmt.Println("Changes detected, saving note...")
 	err = parseFileChange(b, n, raw)
 	if err != nil {
-		fmt.Println("Error parsing the changes:", err)
-		return
+		// fmt.Println("Error parsing the changes:", err)
+		return err
 	}
-	evernote.SaveChanges(n, raw)
+	return evernote.SaveChanges(client, n, raw)
 }
 
 func createTmpFileAndEdit(filename, title, content string) ([]byte, error) {
 	//tempDir := os.TempDir()
-	tempDir := config.GetCacheFolder()
+	cfg := new(config.DefaultConfig)
+	tempDir := cfg.GetCacheFolder()
 	if tempDir == "" {
 		return nil, errors.New("no valid temp folder")
 	}

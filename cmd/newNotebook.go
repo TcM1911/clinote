@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TcM1911/clinote/user"
-	"github.com/TcM1911/evernote-sdk-golang/types"
+	"github.com/TcM1911/clinote/evernote"
+
 	"github.com/spf13/cobra"
 )
 
@@ -47,8 +47,8 @@ func createNotebook(cmd *cobra.Command, args []string) {
 		fmt.Println("No notebook name given")
 		os.Exit(1)
 	}
-	nb := types.NewNotebook()
-	nb.Name = &args[0]
+	nb := &evernote.Notebook{}
+	nb.Name = args[0]
 
 	stack, err := cmd.Flags().GetString("stack")
 	if err != nil {
@@ -56,7 +56,7 @@ func createNotebook(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	if stack != "" {
-		nb.Stack = &stack
+		nb.Stack = stack
 	}
 
 	d, err := cmd.Flags().GetBool("default")
@@ -64,11 +64,12 @@ func createNotebook(cmd *cobra.Command, args []string) {
 		fmt.Println("Error when parsing default value:", err)
 		os.Exit(1)
 	}
-	nb.DefaultNotebook = &d
+	// nb.DefaultNotebook = d
 
-	ns := user.GetNoteStore()
+	// ns := evernote.GetNoteStore()
+	client := defaultClient()
 
-	_, err = ns.CreateNotebook(user.AuthToken, nb)
+	err = evernote.CreateNotebook(client, nb, d)
 	if err != nil {
 		fmt.Println("Error when creating the notebook:", err)
 		os.Exit(1)
