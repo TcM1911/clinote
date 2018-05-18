@@ -1,6 +1,7 @@
 package evernote
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -91,11 +92,13 @@ func NewClient(cfg config.Configuration) *Client {
 	setup.Do(func() {
 		env := ec.PRODUCTION
 		if devBuild {
+			fmt.Println("Dev build")
 			env = ec.SANDBOX
 		}
 		client.evernote = ec.NewClient(apiConsumer, apiSecret, env)
 		devToken := os.Getenv("EVERNOTE_DEV_TOKEN")
 		if devToken != "" {
+			fmt.Println("Using dev token")
 			client.apiToken = devToken
 		} else {
 			cacheDir := cfg.GetCacheFolder()
