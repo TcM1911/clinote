@@ -16,6 +16,10 @@ type NotestoreClient interface {
 	FindNotes(filter *NoteFilter, offset, count int) ([]*Note, error)
 	// GetAllNotebooks returns all the of users notebooks.
 	GetAllNotebooks() ([]*Notebook, error)
+	// GetNotebook
+	GetNotebook(guid string) (*Notebook, error)
+	// CreateNotebook
+	CreateNotebook(b *Notebook, defaultNotebook bool) error
 	// GetNoteContent gets the note's content from the notestore.
 	GetNoteContent(guid string) (string, error)
 	// UpdateNote update's the note.
@@ -61,6 +65,14 @@ func (s *Notestore) CreateNotebook(b *Notebook, defaultNotebook bool) error {
 	transferNotebookData(b, nb)
 	_, err := s.evernoteNS.CreateNotebook(s.client.GetAPIToken(), nb)
 	return err
+}
+
+func (s *Notestore) GetNotebook(guid string) (*Notebook, error) {
+	nb, err := s.evernoteNS.GetNotebook(s.client.GetAPIToken(), types.GUID(guid))
+	if err != nil {
+		return nil, err
+	}
+	return convertNotebooks([]*types.Notebook{nb})[0], nil
 }
 
 // CreateNote creates a new note and saves it to the server.
