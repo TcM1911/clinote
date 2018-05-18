@@ -7,3 +7,5 @@ os:
 script:
   - make test
   - make
+  - make build_all
+  - make release_all
