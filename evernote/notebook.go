@@ -77,3 +77,21 @@ func GetNotebooks(client APIClient) ([]*Notebook, error) {
 	}
 	return ns.GetAllNotebooks()
 }
+
+// GetNotebook returns a notebook from the user's notestore.
+func GetNotebook(client APIClient, guid string) (*Notebook, error) {
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return nil, err
+	}
+	return ns.GetNotebook(guid)
+}
+
+// CreateNotebook creates a new notebook.
+func CreateNotebook(client APIClient, notebook *Notebook, defaultNotebook bool) error {
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return err
+	}
+	return ns.CreateNotebook(notebook, defaultNotebook)
+}
