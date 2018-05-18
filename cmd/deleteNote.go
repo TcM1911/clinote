@@ -17,8 +17,9 @@
 
 package cmd
 
-/*import (
+import (
 	"fmt"
+	"os"
 
 	"github.com/TcM1911/clinote/evernote"
 	"github.com/spf13/cobra"
@@ -39,11 +40,16 @@ To expunge the note you need to use the official client or the web client.`,
 			fmt.Println("Error when parsing the notebook name:", err)
 			return
 		}
-		evernote.DeleteNote(args[0], nb)
+		client := defaultClient()
+		err = evernote.DeleteNote(client, args[0], nb)
+		if err != nil {
+			fmt.Println("Error when deleting the note:", err)
+			os.Exit(1)
+		}
 	},
 }
 
 func init() {
 	noteCmd.AddCommand(deleteNoteCmd)
 	deleteNoteCmd.Flags().StringP("notebook", "b", "", "The notebook of the note.")
-}*/
+}
