@@ -50,7 +50,7 @@ release_386:
 release_amd64:
 	mkdir -p $(DIST_FOLDER)
 	tar cfvz $(DIST_FOLDER)/clinote-$(VERSION)-amd64.tar.gz -C target clinote-$(VERSION)-amd64
-	cd dist && sha256sum $(DIST_FOLDER)/clinote-$(VERSION)-amd64.tar.gz > clinote-$(VERSION)-amd64.tar.gz.sha256sum
+	cd dist && sha256sum clinote-$(VERSION)-amd64.tar.gz > clinote-$(VERSION)-amd64.tar.gz.sha256sum
 
 release_macos:
 	mkdir -p $(DIST_FOLDER)
