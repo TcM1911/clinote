@@ -17,8 +17,9 @@
 
 package cmd
 
-/*import (
+import (
 	"fmt"
+	"os"
 
 	"github.com/TcM1911/clinote/evernote"
 	"github.com/spf13/cobra"
@@ -64,7 +65,12 @@ define the new stack.`,
 			fmt.Println("No changes detected, aborting.")
 			return
 		}
-		evernote.UpdateNotebook(args[0], notebook)
+		client := defaultClient()
+		err = evernote.UpdateNotebook(client, args[0], notebook)
+		if err != nil {
+			fmt.Println("Error when editing the notebook:", err)
+			os.Exit(1)
+		}
 	},
 }
 
@@ -72,4 +78,4 @@ func init() {
 	notebookCmd.AddCommand(editNotebookCmd)
 	editNotebookCmd.Flags().StringP("name", "n", "", "Change notebook name to.")
 	editNotebookCmd.Flags().StringP("stack", "s", "", "Change notebook stack to.")
-}*/
+}
