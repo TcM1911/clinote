@@ -284,3 +284,7 @@ func (a *mockAPI) UpdateNote(authenticationToken string, note *types.Note) (r *t
 func (a *mockAPI) GetNoteContent(authenticationToken string, guid types.GUID) (r string, err error) {
 	return a.getNoteContent(authenticationToken, guid)
 }
+
+func (a *mockAPI) GetNotebook(authenticationToken string, guid types.GUID) (r *types.Notebook, err error) {
+	panic("not implemented")
+}
