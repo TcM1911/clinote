@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/TcM1911/clinote.svg?branch=master)](https://travis-ci.org/TcM1911/clinote)
+
 # CLInote
 
 CLInote is a command line client for Evernote inspired by [geeknote](https://github.com/VitaliyRodnenko/geeknote).
