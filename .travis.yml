@@ -7,3 +7,7 @@ os:
 script:
   - make test
   - make
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make build_all; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make release_all; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then make build_macos; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then make release_macos; fi

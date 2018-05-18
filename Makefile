@@ -1,6 +1,7 @@
 VERSION_FILE=cmd/root.go
 VERSION=$(shell grep "const version string" $(VERSION_FILE) | cut -d '"' -f 2)
 
+DIST_FOLDER=dist
 RELEASE_FILES=CHANGELOG.md LICENSE README.md TODO.md
 
 build:
@@ -15,6 +16,7 @@ clean:
 	rm -rf target
 	rm -f *.cov
 	rm -f coverage_*
+	rm -rf $(DIST_FOLDER)
 
 test_evernote:
 	go test -v ./evernote/...
@@ -41,12 +43,24 @@ build_amd64:
 	cp $(RELEASE_FILES) target/clinote-$(VERSION)-amd64/
 
 release_386:
-	tar cfvz clinote-$(VERSION)-i386.tar.gz -C target clinote-$(VERSION)-i386
-	sha256sum clinote-$(VERSION)-i386.tar.gz > clinote-$(VERSION)-i386.tar.gz.sha256sum
+	mkdir -p $(DIST_FOLDER)
+	tar cfvz $(DIST_FOLDER)/clinote-$(VERSION)-i386.tar.gz -C target clinote-$(VERSION)-i386
+	cd dist && sha256sum clinote-$(VERSION)-i386.tar.gz > clinote-$(VERSION)-i386.tar.gz.sha256sum
 
 release_amd64:
-	tar cfvz clinote-$(VERSION)-amd64.tar.gz -C target clinote-$(VERSION)-amd64
-	sha256sum clinote-$(VERSION)-amd64.tar.gz > clinote-$(VERSION)-amd64.tar.gz.sha256sum
+	mkdir -p $(DIST_FOLDER)
+	tar cfvz $(DIST_FOLDER)/clinote-$(VERSION)-amd64.tar.gz -C target clinote-$(VERSION)-amd64
+	cd dist && sha256sum $(DIST_FOLDER)/clinote-$(VERSION)-amd64.tar.gz > clinote-$(VERSION)-amd64.tar.gz.sha256sum
+
+release_macos:
+	mkdir -p $(DIST_FOLDER)
+	tar cfvz $(DIST_FOLDER)/clinote-$(VERSION)-macos.tar.gz -C target clinote-$(VERSION)-macos
+	cd dist && shasum -a 256 clinote-$(VERSION)-macos.tar.gz > clinote-$(VERSION)-macos.tar.gz.sha256sum
+
+build_macos:
+	mkdir -p target/clinote-$(VERSION)-macos
+	GOOS=darwin GOARCH=amd64 go build -v -a -o target/clinote-$(VERSION)-macos/clinote
+	cp $(RELEASE_FILES) target/clinote-$(VERSION)-macos/
 
 build_all: build_386 build_amd64
 
