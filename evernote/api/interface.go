@@ -29,6 +29,8 @@ type Notestore interface {
 	CreateNotebook(apiKey string, notebook *types.Notebook) (r *types.Notebook, err error)
 	// UpdateNotebook sends an updated notebook to the server.
 	UpdateNotebook(apiKey string, notebook *types.Notebook) (r int32, err error)
+	// GetNotebook returns a notebook from the notestore.
+	GetNotebook(authenticationToken string, guid types.GUID) (r *types.Notebook, err error)
 	// CreateNote creates a new note on the server.
 	CreateNote(apiKey string, note *types.Note) (r *types.Note, err error)
 	// DeleteNote moves a note to the trash can.
