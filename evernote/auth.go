@@ -46,7 +46,6 @@ func Logout(cfg config.Configuration) error {
 	if err := os.Remove(fp); err != nil {
 		return err
 	}
-	fmt.Println("Successfully logged out.")
 	return nil
 }
 
