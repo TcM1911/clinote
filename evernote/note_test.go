@@ -18,7 +18,6 @@
 package evernote
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -147,8 +146,8 @@ func TestSaveChanges(t *testing.T) {
 	t.Run("return error from GetNoteStore", func(t *testing.T) {
 		client := new(mockClient)
 		client.getNotestore = func() (NotestoreClient, error) { return nil, expectedError }
-		ctx := AddUseRawContentToContext(context.Background(), true)
-		err := SaveChanges(ctx, client, &Note{})
+		// ctx := AddUseRawContentToContext(context.Background(), true)
+		err := SaveChanges(client, &Note{}, true)
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedError, err, "Wrong error returned")
 	})
@@ -157,8 +156,8 @@ func TestSaveChanges(t *testing.T) {
 		ns := new(mockNS)
 		ns.updateNote = func(n *Note) error { return expectedError }
 		client.getNotestore = func() (NotestoreClient, error) { return ns, nil }
-		ctx := AddUseRawContentToContext(context.Background(), false)
-		err := SaveChanges(ctx, client, &Note{})
+		// ctx := AddUseRawContentToContext(context.Background(), false)
+		err := SaveChanges(client, &Note{}, false)
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedError, err, "Wrong error returned")
 	})
@@ -167,8 +166,8 @@ func TestSaveChanges(t *testing.T) {
 		ns := new(mockNS)
 		ns.updateNote = func(n *Note) error { return nil }
 		client.getNotestore = func() (NotestoreClient, error) { return ns, nil }
-		ctx := AddUseRawContentToContext(context.Background(), false)
-		err := SaveChanges(ctx, client, &Note{})
+		// ctx := AddUseRawContentToContext(context.Background(), false)
+		err := SaveChanges(client, &Note{}, false)
 		assert.NoError(err, "Should not return an error")
 	})
 	t.Run("UpdateNote with MD content", func(t *testing.T) {
@@ -178,8 +177,8 @@ func TestSaveChanges(t *testing.T) {
 		note.MD = body
 		ns.updateNote = func(n *Note) error { return nil }
 		client.getNotestore = func() (NotestoreClient, error) { return ns, nil }
-		ctx := AddUseRawContentToContext(context.Background(), false)
-		err := SaveChanges(ctx, client, note)
+		// ctx := AddUseRawContentToContext(context.Background(), false)
+		err := SaveChanges(client, note, false)
 		assert.NoError(err, "Should not return an error")
 		assert.Equal(expectedMDContent, note.Body, "Note content doesn't match")
 	})
@@ -191,8 +190,8 @@ func TestSaveChanges(t *testing.T) {
 		note.Body = "<p>" + body + "</p>"
 		ns.updateNote = func(n *Note) error { return nil }
 		client.getNotestore = func() (NotestoreClient, error) { return ns, nil }
-		ctx := AddUseRawContentToContext(context.Background(), true)
-		err := SaveChanges(ctx, client, note)
+		// ctx := AddUseRawContentToContext(context.Background(), true)
+		err := SaveChanges(client, note, true)
 		assert.NoError(err, "Should not return an error")
 		assert.Equal(expectedRawContent, note.Body, "Note content doesn't match")
 	})
@@ -454,4 +453,12 @@ func (s *mockNS) FindNotes(filter *NoteFilter, offset int, count int) ([]*Note, 
 
 func (s *mockNS) GetAllNotebooks() ([]*Notebook, error) {
 	return s.getAllNotebooks()
+}
+
+func (s *mockNS) CreateNotebook(b *Notebook, defaultNotebook bool) error {
+	panic("not implemented")
+}
+
+func (s *mockNS) GetNotebook(guid string) (*Notebook, error) {
+	panic("not implemented")
 }
