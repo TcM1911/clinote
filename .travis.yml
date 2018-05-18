@@ -1,0 +1,9 @@
+language: go
+
+os:
+  - linux
+  - osx
+
+script:
+  - make test
+  - make
