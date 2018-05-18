@@ -63,6 +63,8 @@ func convert(note *types.Note) *Note {
 	notebookGUID := note.GetNotebookGuid()
 	n.Notebook = notebook
 	n.Notebook.GUID = notebookGUID
+	n.Created = int64(note.GetCreated())
+	n.Updated = int64(note.GetUpdated())
 	return n
 }
 
