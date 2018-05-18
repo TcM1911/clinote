@@ -45,7 +45,9 @@ func convertNotebooks(bs []*types.Notebook) []*Notebook {
 
 func transferNotebookData(src *Notebook, dst *types.Notebook) {
 	dst.Name = &(src.Name)
-	dst.Stack = &(src.Stack)
+	if src.Stack != "" {
+		dst.Stack = &(src.Stack)
+	}
 }
 
 func cacheNotebook(nb *types.Notebook) {
