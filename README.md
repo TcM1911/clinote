@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/TcM1911/clinote.svg?branch=master)](https://travis-ci.org/TcM1911/clinote)
+[![Build Status](https://travis-ci.org/TcM1911/clinote.svg?branch=master)](https://travis-ci.org/TcM1911/clinote) [![Go Report Card](https://goreportcard.com/badge/github.com/TcM1911/clinote)](https://goreportcard.com/report/github.com/TcM1911/clinote)
 
 # CLInote
 
