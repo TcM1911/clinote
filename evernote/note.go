@@ -140,7 +140,10 @@ func GetNoteWithContent(client APIClient, title string) (*Note, error) {
 	if err != nil {
 		return nil, err
 	}
-	n.MD = markdown.ToHTML(n.Body)
+	n.MD, err = markdown.FromHTML(n.Body)
+	if err != nil {
+		return nil, err
+	}
 	return n, nil
 }
 

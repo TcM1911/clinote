@@ -12,43 +12,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
- * Copyright (C) Joakim Kennedy, 2016
+ * Copyright (C) Joakim Kennedy, 2016 - 2018
  */
 
 package markdown
 
 import (
-	"html"
+	"bytes"
+	"strings"
 
-	"github.com/lunny/html2md"
+	"github.com/mattn/godown"
 )
 
-func ToHTML(body string) string {
-	html2md.AddRule("code", code())
-	html2md.AddRule("pre", pre())
-	return html2md.Convert(html.UnescapeString(body))
-}
-
-func code() *html2md.Rule {
-	return &html2md.Rule{
-		Patterns: []string{"code"},
-		Replacement: func(innerHTML string, attrs []string) string {
-			if len(attrs) > 1 {
-				return "```\n" + attrs[1] + "```\n"
-			}
-			return ""
-		},
+func FromHTML(body string) (string, error) {
+	buf := new(bytes.Buffer)
+	err := godown.Convert(buf, strings.NewReader(body), new(godown.Option))
+	if err != nil {
+		return "", err
 	}
-}
-
-func pre() *html2md.Rule {
-	return &html2md.Rule{
-		Patterns: []string{"pre"},
-		Replacement: func(innerHTML string, attrs []string) string {
-			if len(attrs) > 1 {
-				return "" + attrs[1] + ""
-			}
-			return ""
-		},
-	}
+	return buf.String(), nil
 }
