@@ -52,10 +52,16 @@
 			"revisionTime": "2016-03-05T16:54:46Z"
 		},
 		{
-			"checksumSHA1": "YV/9c+bEjrHXhQepOyxY2/r5Q34=",
-			"path": "github.com/lunny/html2md",
-			"revision": "7b7960a64564188cf224bd2ea5a19386f8bca2ab",
-			"revisionTime": "2015-11-03T06:14:08Z"
+			"checksumSHA1": "KGCifxxR5cm2gz94i2iha+RIZlk=",
+			"path": "github.com/mattn/go-runewidth",
+			"revision": "ce7b0b5c7b45a81508558cd1dba6bb1e4ddb51bb",
+			"revisionTime": "2018-04-08T05:53:51Z"
+		},
+		{
+			"checksumSHA1": "N97AhOVx5NfIL4lla+0KkVKrQoE=",
+			"path": "github.com/mattn/godown",
+			"revision": "2e9e17e0ea51a2103f6445211e011a296bcd00e3",
+			"revisionTime": "2018-03-12T01:23:30Z"
 		},
 		{
 			"checksumSHA1": "4nd5J4bz9bwh5XDRdTZRB78T2tU=",
@@ -99,6 +105,18 @@
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "6fe211e493929a8aac0469b93f28b1d0688a9a3a",
 			"revisionTime": "2016-03-05T16:54:46Z"
+		},
+		{
+			"checksumSHA1": "6WbIuKGVDXQWwDjjEYx4fzLfQO8=",
+			"path": "golang.org/x/net/html",
+			"revision": "2491c5de3490fced2f6cff376127c667efeed857",
+			"revisionTime": "2018-05-11T17:36:03Z"
+		},
+		{
+			"checksumSHA1": "XtSbs1gpyaEsIqf6VRhJsgOQe5U=",
+			"path": "golang.org/x/net/html/atom",
+			"revision": "2491c5de3490fced2f6cff376127c667efeed857",
+			"revisionTime": "2018-05-11T17:36:03Z"
 		}
 	],
 	"rootPath": "github.com/TcM1911/clinote"

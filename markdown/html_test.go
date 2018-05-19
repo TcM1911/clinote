@@ -12,23 +12,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
- * Copyright (C) Joakim Kennedy, 2016 - 2018
+ * Copyright (C) Joakim Kennedy, 2018
  */
 
 package markdown
 
 import (
-	"bytes"
-	"strings"
+	"testing"
 
-	"github.com/mattn/godown"
+	"github.com/stretchr/testify/assert"
 )
 
-func FromHTML(body string) (string, error) {
-	buf := new(bytes.Buffer)
-	err := godown.Convert(buf, strings.NewReader(body), new(godown.Option))
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
+func TestFromHTML(t *testing.T) {
+	assert := assert.New(t)
+
+	para := "Test paragraph"
+	doc := "<p>" + para + "</p>"
+	expected := para + "\n\n\n"
+
+	actual, err := FromHTML(doc)
+	assert.NoError(err, "Should parse the doc without an error")
+	assert.Equal(expected, actual, "Not converted")
 }
