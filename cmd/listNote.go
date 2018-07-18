@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
@@ -57,6 +57,7 @@ func init() {
 
 func findNotes(cmd *cobra.Command, args []string) {
 	client := defaultClient()
+	defer client.Close()
 
 	// Create filter
 	filter := &evernote.NoteFilter{}

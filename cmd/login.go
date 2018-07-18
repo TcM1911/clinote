@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
@@ -31,6 +31,7 @@ var loginCmd = &cobra.Command{
 Login authorizes CLInote to the server using OAuth.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		client := defaultClient()
+		defer client.Close()
 		err := evernote.Login(client)
 		if err == nil {
 			fmt.Println("Authentication successful!")

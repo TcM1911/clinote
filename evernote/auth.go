@@ -18,13 +18,11 @@
 package evernote
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -39,27 +37,24 @@ type callbackValues struct {
 
 // Logout removes the session stored.
 func Logout(cfg config.Configuration) error {
-	fp := filepath.Join(cfg.GetCacheFolder(), "session")
-	if !checkLogin(fp) {
-		return ErrNotLoggedIn
-	}
-	if err := os.Remove(fp); err != nil {
+	s, err := cfg.Store().GetSettings()
+	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func checkLogin(fp string) bool {
-	if _, err := os.Stat(fp); os.IsNotExist(err) {
-		return false
+	if s.APIKey == "" {
+		return ErrNotLoggedIn
 	}
-	return true
+	s.APIKey = ""
+	return cfg.Store().StoreSettings(s)
 }
 
 // Login logs the user in to the server.
 func Login(client APIClient) error {
-	fp := filepath.Join(client.GetConfig().GetCacheFolder(), "session")
-	if checkLogin(fp) {
+	s, err := client.GetConfig().Store().GetSettings()
+	if err != nil {
+		return err
+	}
+	if s.APIKey != "" {
 		return ErrAlreadyLoggedIn
 	}
 	c := make(chan *callbackValues)
@@ -90,31 +85,8 @@ func Login(client APIClient) error {
 	if err != nil {
 		return err
 	}
-	if err = saveToken(client.GetConfig(), token); err != nil {
-		return err
-	}
-	return nil
-}
-
-func saveToken(cfg config.Configuration, token string) error {
-	dir := cfg.GetCacheFolder()
-	fp := filepath.Join(dir, "session")
-	if _, err := os.Stat(fp); os.IsNotExist(err) {
-		f, err := os.OpenFile(fp, os.O_CREATE, 0600)
-		if err != nil {
-			return errors.New("error when creating session file: " + err.Error())
-		}
-		f.Close()
-	}
-	f, err := os.OpenFile(fp, os.O_WRONLY, 0600)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	if _, err := f.WriteString(token); err != nil {
-		return errors.New("error when saving token to file:" + err.Error())
-	}
-	return nil
+	s.APIKey = token
+	return client.GetConfig().Store().StoreSettings(s)
 }
 
 func tryOpenLoginInBrowser(url string) {

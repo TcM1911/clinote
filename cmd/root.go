@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"

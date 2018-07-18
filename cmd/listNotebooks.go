@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
@@ -41,6 +41,7 @@ func init() {
 
 func listNotebooks() {
 	client := defaultClient()
+	defer client.Close()
 	bs, err := evernote.GetNotebooks(client)
 	if err != nil {
 		fmt.Println("Error when getting notebooks:", err)

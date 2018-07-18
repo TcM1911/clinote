@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
@@ -66,6 +66,7 @@ define the new stack.`,
 			return
 		}
 		client := defaultClient()
+		defer client.Close()
 		err = evernote.UpdateNotebook(client, args[0], notebook)
 		if err != nil {
 			fmt.Println("Error when editing the notebook:", err)

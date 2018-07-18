@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
@@ -68,6 +68,7 @@ func createNotebook(cmd *cobra.Command, args []string) {
 
 	// ns := evernote.GetNoteStore()
 	client := defaultClient()
+	defer client.Close()
 
 	err = evernote.CreateNotebook(client, nb, d)
 	if err != nil {

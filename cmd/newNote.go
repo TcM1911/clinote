@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
@@ -101,6 +101,7 @@ func createNote(title, notebook string, edit, raw bool) {
 	}
 
 	client := defaultClient()
+	defer client.Close()
 	if notebook != "" {
 		nb, err := evernote.FindNotebook(client, notebook)
 		if err != nil {

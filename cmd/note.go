@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
@@ -51,6 +51,7 @@ func getNote(cmd *cobra.Command, args []string) {
 		return
 	}
 	client := defaultClient()
+	defer client.Close()
 	n, err := evernote.GetNoteWithContent(client, name)
 	if err != nil {
 		fmt.Println("Error when getting the note:", err.Error())

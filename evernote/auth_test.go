@@ -22,10 +22,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/TcM1911/clinote"
 	"github.com/TcM1911/clinote/config"
 	"github.com/mrjones/oauth"
 	"github.com/stretchr/testify/assert"
@@ -35,42 +35,30 @@ func TestLogout(t *testing.T) {
 	assert := assert.New(t)
 	t.Run("Error when not logged in", func(t *testing.T) {
 		cfg := new(cfgMock)
-		tmpdir := os.TempDir()
-		folder := filepath.Join(tmpdir, "logout_test_dir1")
-		if err := os.MkdirAll(folder, os.ModeDir|0700); err != nil {
-			t.Fatal(err)
-		}
-		cfg.getCacheFolder = func() string { return folder }
+		store := new(mockStore)
+		settings := new(clinote.Settings)
+		store.settings = settings
+		cfg.getStore = func() clinote.Storager { return store }
 		err := Logout(cfg)
 		assert.Equal(ErrNotLoggedIn, err, "Wrong error message")
 	})
 	t.Run("Should logout", func(t *testing.T) {
-		tmpdir := os.TempDir()
-		folder := filepath.Join(tmpdir, "logout_test_dir2")
-		if err := os.MkdirAll(folder, os.ModeDir|0700); err != nil {
-			t.Fatal(err)
-		}
-		fp := filepath.Join(folder, "session")
-		f, err := os.OpenFile(fp, os.O_CREATE, 0600)
-		if err != nil {
-			t.Fatal(err)
-		}
-		f.Close()
 		cfg := new(cfgMock)
-		cfg.getCacheFolder = func() string { return folder }
-		err = Logout(cfg)
+		store := new(mockStore)
+		settings := new(clinote.Settings)
+		settings.APIKey = "test session"
+		store.settings = settings
+		cfg.getStore = func() clinote.Storager { return store }
+		err := Logout(cfg)
 		assert.Nil(err, "Should not return an error. Returned:", err)
-		// Clean up
-		err = os.RemoveAll(folder)
-		if err != nil {
-			t.Log("Error when removing test folder:", err.Error())
-		}
+		assert.Equal("", settings.APIKey, "Session key should be empty")
 	})
 }
 
 type cfgMock struct {
 	getCacheFolder func() string
 	getConfFolder  func() string
+	getStore       func() clinote.Storager
 }
 
 func (c *cfgMock) GetConfigFolder() string {
@@ -79,6 +67,14 @@ func (c *cfgMock) GetConfigFolder() string {
 
 func (c *cfgMock) GetCacheFolder() string {
 	return c.getCacheFolder()
+}
+
+func (c *cfgMock) Store() clinote.Storager {
+	return c.getStore()
+}
+
+func (c *cfgMock) Close() error {
+	return nil
 }
 
 func TestCallbackHandler(t *testing.T) {
@@ -103,66 +99,37 @@ func TestLogin(t *testing.T) {
 	os.Unsetenv("BROWSER")
 	assert := assert.New(t)
 	t.Run("should login", func(t *testing.T) {
-		testDir := filepath.Join(os.TempDir(), fmt.Sprintf("%d", time.Now().Unix()))
-		err := os.MkdirAll(testDir, os.ModeDir|0777)
-		if err != nil {
-			assert.FailNow("Error creating test folder", err)
-		}
-		err = loginHelperFunction(t, testDir, false, false)
+		settings := new(clinote.Settings)
+		err := loginHelperFunction(t, settings, false, false)
 		assert.NoError(err, "Should not return a login error")
-		err = os.RemoveAll(testDir)
-		if err != nil {
-			assert.FailNow("Error when removing test folder", err)
-		}
+		assert.Equal("oauth_token", settings.APIKey, "Session key not set")
 	})
 	t.Run("error when access revoked", func(t *testing.T) {
-		testDir := filepath.Join(os.TempDir(), fmt.Sprintf("%d", time.Now().Unix()))
-		err := os.MkdirAll(testDir, os.ModeDir|0777)
-		if err != nil {
-			assert.FailNow("Error creating test folder", err)
-		}
-		err = loginHelperFunction(t, testDir, true, false)
+		settings := new(clinote.Settings)
+		err := loginHelperFunction(t, settings, true, false)
 		assert.EqualError(err, ErrAccessRevoked.Error(), "Expected access denied")
-		err = os.RemoveAll(testDir)
-		if err != nil {
-			assert.FailNow("Error when removing test folder", err)
-		}
 	})
 	t.Run("error when temporary token is incorrect", func(t *testing.T) {
-		testDir := filepath.Join(os.TempDir(), fmt.Sprintf("%d", time.Now().Unix()))
-		err := os.MkdirAll(testDir, os.ModeDir|0777)
-		if err != nil {
-			assert.FailNow("Error creating test folder", err)
-		}
-		err = loginHelperFunction(t, testDir, false, true)
+		settings := new(clinote.Settings)
+		err := loginHelperFunction(t, settings, false, true)
 		assert.EqualError(err, ErrTempTokenMismatch.Error(), "Expected token error")
-		err = os.RemoveAll(testDir)
-		if err != nil {
-			assert.FailNow("Error when removing test folder", err)
-		}
 	})
 	t.Run("error when already logged in", func(t *testing.T) {
-		testDir := filepath.Join(os.TempDir(), fmt.Sprintf("%d", time.Now().Unix()))
-		err := os.MkdirAll(testDir, os.ModeDir|0777)
-		if err != nil {
-			assert.FailNow("Error creating test folder", err)
-		}
-		file := filepath.Join(testDir, "session")
-		os.OpenFile(file, os.O_CREATE, 0777)
-		err = loginHelperFunction(t, testDir, false, true)
+		settings := new(clinote.Settings)
+		settings.APIKey = "test token"
+		err := loginHelperFunction(t, settings, false, true)
 		assert.EqualError(err, ErrAlreadyLoggedIn.Error(), "Expected already logged in error")
-		err = os.RemoveAll(testDir)
-		if err != nil {
-			assert.FailNow("Error when removing test folder", err)
-		}
 	})
 }
 
-func loginHelperFunction(t *testing.T, testFolder string, verify, tokenMismatch bool) error {
+func loginHelperFunction(t *testing.T, settings *clinote.Settings, verify, tokenMismatch bool) error {
 	tmpToken := &oauth.RequestToken{Token: "testToken"}
 	client := new(mockClient)
 	cfg := new(cfgMock)
-	cfg.getCacheFolder = func() string { return testFolder }
+	store := new(mockStore)
+	store.settings = settings
+	cfg.getStore = func() clinote.Storager { return store }
+	// cfg.getCacheFolder = func() string { return testFolder }
 	client.getConfig = func() config.Configuration { return cfg }
 	client.getAuthorizedToken = func(tmpToken *oauth.RequestToken, verify string) (string, error) {
 		return "oauth_token", nil

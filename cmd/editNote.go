@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"bufio"
@@ -68,6 +68,7 @@ with the notebook flag.`,
 			return
 		}
 		client := defaultClient()
+		defer client.Close()
 		if title != "" {
 			evernote.ChangeTitle(client, args[0], title)
 		}

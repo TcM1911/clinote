@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
@@ -41,6 +41,7 @@ To expunge the note you need to use the official client or the web client.`,
 			return
 		}
 		client := defaultClient()
+		defer client.Close()
 		err = evernote.DeleteNote(client, args[0], nb)
 		if err != nil {
 			fmt.Println("Error when deleting the note:", err)
