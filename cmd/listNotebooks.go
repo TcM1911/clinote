@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TcM1911/clinote/evernote"
+	"github.com/TcM1911/clinote"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +42,11 @@ func init() {
 func listNotebooks() {
 	client := defaultClient()
 	defer client.Close()
-	bs, err := evernote.GetNotebooks(client)
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return
+	}
+	bs, err := clinote.GetNotebooks(ns)
 	if err != nil {
 		fmt.Println("Error when getting notebooks:", err)
 		os.Exit(1)

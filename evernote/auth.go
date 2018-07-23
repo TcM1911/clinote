@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/TcM1911/clinote/config"
+	"github.com/TcM1911/clinote"
 )
 
 type callbackValues struct {
@@ -36,7 +36,7 @@ type callbackValues struct {
 }
 
 // Logout removes the session stored.
-func Logout(cfg config.Configuration) error {
+func Logout(cfg clinote.Configuration) error {
 	s, err := cfg.Store().GetSettings()
 	if err != nil {
 		return err

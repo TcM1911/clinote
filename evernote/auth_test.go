@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/TcM1911/clinote"
-	"github.com/TcM1911/clinote/config"
 	"github.com/mrjones/oauth"
 	"github.com/stretchr/testify/assert"
 )
@@ -129,8 +128,7 @@ func loginHelperFunction(t *testing.T, settings *clinote.Settings, verify, token
 	store := new(mockStore)
 	store.settings = settings
 	cfg.getStore = func() clinote.Storager { return store }
-	// cfg.getCacheFolder = func() string { return testFolder }
-	client.getConfig = func() config.Configuration { return cfg }
+	client.getConfig = func() clinote.Configuration { return cfg }
 	client.getAuthorizedToken = func(tmpToken *oauth.RequestToken, verify string) (string, error) {
 		return "oauth_token", nil
 	}
@@ -165,12 +163,12 @@ func loginHelperFunction(t *testing.T, settings *clinote.Settings, verify, token
 type mockClient struct {
 	getAuthorizedToken func(*oauth.RequestToken, string) (string, error)
 	getRequestToken    func(string) (*oauth.RequestToken, string, error)
-	getConfig          func() config.Configuration
+	getConfig          func() clinote.Configuration
 	apiToken           string
-	getNotestore       func() (NotestoreClient, error)
+	getNotestore       func() (clinote.NotestoreClient, error)
 }
 
-func (c *mockClient) GetNoteStore() (NotestoreClient, error) {
+func (c *mockClient) GetNoteStore() (clinote.NotestoreClient, error) {
 	return c.getNotestore()
 }
 
@@ -182,7 +180,7 @@ func (c *mockClient) GetRequestToken(callbackURL string) (token *oauth.RequestTo
 	return c.getRequestToken(callbackURL)
 }
 
-func (c *mockClient) GetConfig() config.Configuration {
+func (c *mockClient) GetConfig() clinote.Configuration {
 	return c.getConfig()
 }
 

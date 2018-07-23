@@ -22,10 +22,23 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/TcM1911/clinote/config"
+	"github.com/TcM1911/clinote"
+	"github.com/mrjones/oauth"
 )
 
-func migrateOldSession(cfg config.Configuration) string {
+// APIClient is the interface for the api client.
+type APIClient interface {
+	// GetNoteStore returns the note store for the user.
+	GetNoteStore() (clinote.NotestoreClient, error)
+	// GetAuthorizedToken gets the authorized token from the server.
+	GetAuthorizedToken(tmpToken *oauth.RequestToken, verifier string) (token string, err error)
+	// GetRequestToken requests a request token from the server.
+	GetRequestToken(callbackURL string) (token *oauth.RequestToken, url string, err error)
+	// GetConfig returns the client's configuration.
+	GetConfig() clinote.Configuration
+}
+
+func migrateOldSession(cfg clinote.Configuration) string {
 	cacheDir := cfg.GetCacheFolder()
 	fp := filepath.Join(cacheDir, "session")
 	if _, err := os.Stat(fp); os.IsNotExist(err) {

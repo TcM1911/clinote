@@ -15,7 +15,17 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package evernote
+package clinote
+
+import "errors"
+
+var (
+	// ErrNoNotebookFound is returned if no matching notebook was found.
+	ErrNoNotebookFound = errors.New("no notebook found")
+	// ErrNoNotebookCached is returned when trying to update a notebook
+	// that hasn't been pulled from the server.
+	ErrNoNotebookCached = errors.New("no notebook found")
+)
 
 // Notebook is a struct for the notebook.
 type Notebook struct {
@@ -28,11 +38,7 @@ type Notebook struct {
 }
 
 // UpdateNotebook updates the notebook.
-func UpdateNotebook(client APIClient, name string, notebook *Notebook) error {
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return err
-	}
+func UpdateNotebook(ns NotestoreClient, name string, notebook *Notebook) error {
 	b, err := findNotebook(ns, name)
 	if err != nil {
 		return err
@@ -48,11 +54,7 @@ func UpdateNotebook(client APIClient, name string, notebook *Notebook) error {
 
 // FindNotebook gets the notebook matching with the name.
 // If no notebook is found, nil is returned.
-func FindNotebook(client APIClient, name string) (*Notebook, error) {
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return nil, err
-	}
+func FindNotebook(ns NotestoreClient, name string) (*Notebook, error) {
 	return findNotebook(ns, name)
 }
 
@@ -70,28 +72,16 @@ func findNotebook(ns NotestoreClient, name string) (*Notebook, error) {
 }
 
 // GetNotebooks returns all the user's notebooks.
-func GetNotebooks(client APIClient) ([]*Notebook, error) {
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return nil, err
-	}
+func GetNotebooks(ns NotestoreClient) ([]*Notebook, error) {
 	return ns.GetAllNotebooks()
 }
 
 // GetNotebook returns a notebook from the user's notestore.
-func GetNotebook(client APIClient, guid string) (*Notebook, error) {
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return nil, err
-	}
+func GetNotebook(ns NotestoreClient, guid string) (*Notebook, error) {
 	return ns.GetNotebook(guid)
 }
 
 // CreateNotebook creates a new notebook.
-func CreateNotebook(client APIClient, notebook *Notebook, defaultNotebook bool) error {
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return err
-	}
+func CreateNotebook(ns NotestoreClient, notebook *Notebook, defaultNotebook bool) error {
 	return ns.CreateNotebook(notebook, defaultNotebook)
 }

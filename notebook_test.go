@@ -1,4 +1,21 @@
-package evernote
+/*
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ * Copyright (C) Joakim Kennedy, 2018
+ */
+
+package clinote
 
 import (
 	"errors"
@@ -10,29 +27,18 @@ import (
 func TestFindNotebook(t *testing.T) {
 	assert := assert.New(t)
 	t.Run("return notebook", func(t *testing.T) {
-		c := new(mockClient)
 		ns := new(mockNS)
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.getAllNotebooks = func() ([]*Notebook, error) { return []*Notebook{&Notebook{Name: "Book"}}, nil }
-		b, err := FindNotebook(c, "Book")
+		b, err := FindNotebook(ns, "Book")
 		assert.NoError(err, "Should not return an error")
 		assert.Equal("Book", b.Name, "Wrong notebook name")
 	})
 	t.Run("return error if no notebook", func(t *testing.T) {
-		c := new(mockClient)
 		ns := new(mockNS)
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.getAllNotebooks = func() ([]*Notebook, error) { return []*Notebook{&Notebook{Name: "Book"}}, nil }
-		_, err := FindNotebook(c, "Missing")
+		_, err := FindNotebook(ns, "Missing")
 		assert.Error(err, "Should return an error")
 		assert.Equal(ErrNoNotebookFound, err, "Wrong error returned")
-	})
-	t.Run("return error from GetNoteStore", func(t *testing.T) {
-		c := new(mockClient)
-		expectedErr := errors.New("test error")
-		c.getNotestore = func() (NotestoreClient, error) { return nil, expectedErr }
-		_, err := FindNotebook(c, "Book")
-		assert.Error(err, "Should return an error")
 	})
 }
 
@@ -41,17 +47,9 @@ func TestGetNotebooks(t *testing.T) {
 	t.Run("multiple books", func(t *testing.T) {
 		books := []*Notebook{&Notebook{}, &Notebook{}}
 		ns := &mockNS{getAllNotebooks: func() ([]*Notebook, error) { return books, nil }}
-		c := &mockClient{getNotestore: func() (NotestoreClient, error) { return ns, nil }}
-		bs, err := GetNotebooks(c)
+		bs, err := GetNotebooks(ns)
 		assert.NoError(err, "Should not return an error")
 		assert.Len(bs, 2, "Incorrect number of notebooks returned")
-	})
-	t.Run("return error from GetNoteStore", func(t *testing.T) {
-		expectedErr := errors.New("expected error")
-		c := &mockClient{getNotestore: func() (NotestoreClient, error) { return nil, expectedErr }}
-		_, err := GetNotebooks(c)
-		assert.Error(err, "Should return an error")
-		assert.Equal(expectedErr, err, "Wrong error returned")
 	})
 }
 
@@ -73,26 +71,17 @@ func TestUpdateNotebook(t *testing.T) {
 			var saved *Notebook
 			ns := &mockNS{getAllNotebooks: func() ([]*Notebook, error) { return []*Notebook{oldBook}, nil },
 				updateNotebook: func(book *Notebook) error { saved = book; return nil }}
-			c := &mockClient{getNotestore: func() (NotestoreClient, error) { return ns, nil }}
-			err := UpdateNotebook(c, oldName, test.Book)
+			err := UpdateNotebook(ns, oldName, test.Book)
 			assert.NoError(err, "Should not return an error")
 			assert.Equal(test.ExpectedBook, saved, "Saved notebook doesn't match")
 		})
 	}
-	t.Run("return error from GetNoteStore", func(t *testing.T) {
-		expectedErr := errors.New("expected error")
-		c := &mockClient{getNotestore: func() (NotestoreClient, error) { return nil, expectedErr }}
-		err := UpdateNotebook(c, "", &Notebook{})
-		assert.Error(err, "Should return an error")
-		assert.Equal(expectedErr, err, "Wrong error returned")
-	})
 	t.Run("return error from UpdateNotebook", func(t *testing.T) {
 		expectedErr := errors.New("expected error")
 		oldBook := &Notebook{Name: oldName, Stack: oldStack}
 		ns := &mockNS{getAllNotebooks: func() ([]*Notebook, error) { return []*Notebook{oldBook}, nil },
 			updateNotebook: func(book *Notebook) error { return expectedErr }}
-		c := &mockClient{getNotestore: func() (NotestoreClient, error) { return ns, nil }}
-		err := UpdateNotebook(c, oldName, &Notebook{})
+		err := UpdateNotebook(ns, oldName, &Notebook{})
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedErr, err, "Wrong error returned")
 	})
@@ -100,8 +89,7 @@ func TestUpdateNotebook(t *testing.T) {
 		oldBook := &Notebook{Name: oldName, Stack: oldStack}
 		ns := &mockNS{getAllNotebooks: func() ([]*Notebook, error) { return []*Notebook{oldBook}, nil },
 			updateNotebook: func(book *Notebook) error { return nil }}
-		c := &mockClient{getNotestore: func() (NotestoreClient, error) { return ns, nil }}
-		err := UpdateNotebook(c, newName, &Notebook{})
+		err := UpdateNotebook(ns, newName, &Notebook{})
 		assert.Error(err, "Should return an error")
 		assert.Equal(ErrNoNotebookFound, err, "Wrong error returned")
 	})

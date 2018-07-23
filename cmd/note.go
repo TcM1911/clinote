@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TcM1911/clinote/evernote"
+	"github.com/TcM1911/clinote"
 	"github.com/spf13/cobra"
 )
 
@@ -52,7 +52,11 @@ func getNote(cmd *cobra.Command, args []string) {
 	}
 	client := defaultClient()
 	defer client.Close()
-	n, err := evernote.GetNoteWithContent(client, name)
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return
+	}
+	n, err := clinote.GetNoteWithContent(ns, name)
 	if err != nil {
 		fmt.Println("Error when getting the note:", err.Error())
 		os.Exit(1)

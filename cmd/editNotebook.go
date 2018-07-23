@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TcM1911/clinote/evernote"
+	"github.com/TcM1911/clinote"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +40,7 @@ define the new stack.`,
 			return
 		}
 		change := false
-		notebook := new(evernote.Notebook)
+		notebook := new(clinote.Notebook)
 		name, err := cmd.Flags().GetString("name")
 		if err != nil {
 			fmt.Println("Error when parsing new notebook name:", err)
@@ -67,7 +67,11 @@ define the new stack.`,
 		}
 		client := defaultClient()
 		defer client.Close()
-		err = evernote.UpdateNotebook(client, args[0], notebook)
+		ns, err := client.GetNoteStore()
+		if err != nil {
+			return
+		}
+		err = clinote.UpdateNotebook(ns, args[0], notebook)
 		if err != nil {
 			fmt.Println("Error when editing the notebook:", err)
 			os.Exit(1)

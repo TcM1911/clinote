@@ -20,7 +20,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/TcM1911/clinote/evernote"
+	"github.com/TcM1911/clinote"
 	"github.com/spf13/cobra"
 )
 
@@ -73,7 +73,7 @@ func init() {
 }
 
 func createNote(title, notebook string, edit, raw bool) {
-	note := new(evernote.Note)
+	note := new(clinote.Note)
 	if edit {
 		var t string
 		if title == "" {
@@ -102,13 +102,17 @@ func createNote(title, notebook string, edit, raw bool) {
 
 	client := defaultClient()
 	defer client.Close()
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return
+	}
 	if notebook != "" {
-		nb, err := evernote.FindNotebook(client, notebook)
+		nb, err := clinote.FindNotebook(ns, notebook)
 		if err != nil {
 			fmt.Println("Error when searching for notebook:", err)
 			return
 		}
 		note.Notebook = nb
 	}
-	evernote.SaveNewNote(client, note, raw)
+	clinote.SaveNewNote(ns, note, raw)
 }

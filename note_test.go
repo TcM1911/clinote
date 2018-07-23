@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2017
  */
 
-package evernote
+package clinote
 
 import (
 	"errors"
@@ -26,28 +26,19 @@ import (
 
 func TestGetNote(t *testing.T) {
 	assert := assert.New(t)
-	t.Run("handle notestore error", func(t *testing.T) {
-		testError := errors.New("expected error")
-		client := new(mockClient)
-		client.getNotestore = func() (NotestoreClient, error) { return nil, testError }
-		_, err := GetNote(client, "note", "notebook")
-		assert.EqualError(err, testError.Error())
-	})
 	t.Run("find note by title", func(t *testing.T) {
 		title := "Expected Note"
 		expectedNote := &Note{Title: title}
-		c, _ := nsWithNote(expectedNote)
-		note, err := GetNote(c, title, "")
+		ns := nsWithNote(expectedNote)
+		note, err := GetNote(ns, title, "")
 		assert.NoError(err)
 		assert.Equal(expectedNote, note)
 	})
 	t.Run("return error from FindNotes", func(t *testing.T) {
 		expectedError := errors.New("Expected error")
 		ns := new(mockNS)
-		c := new(mockClient)
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.findNotes = func(filter *NoteFilter, o, max int) ([]*Note, error) { return nil, expectedError }
-		_, err := GetNote(c, "title", "")
+		_, err := GetNote(ns, "title", "")
 		assert.EqualError(err, expectedError.Error())
 	})
 	t.Run("error when note not found", func(t *testing.T) {
@@ -57,10 +48,8 @@ func TestGetNote(t *testing.T) {
 		notes := []*Note{otherNote1, otherNote2}
 
 		ns := new(mockNS)
-		c := new(mockClient)
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.findNotes = func(filter *NoteFilter, o, max int) ([]*Note, error) { return notes, nil }
-		_, err := GetNote(c, title, "")
+		_, err := GetNote(ns, title, "")
 		assert.EqualError(err, ErrNoNoteFound.Error())
 	})
 	t.Run("restrict notes by notebook", func(t *testing.T) {
@@ -74,11 +63,9 @@ func TestGetNote(t *testing.T) {
 		books := []*Notebook{otherBook, expectedNotebook}
 
 		ns := new(mockNS)
-		c := new(mockClient)
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.findNotes = func(filter *NoteFilter, o, max int) ([]*Note, error) { return notes, nil }
 		ns.getAllNotebooks = func() ([]*Notebook, error) { return books, nil }
-		note, err := GetNote(c, title, notebook)
+		note, err := GetNote(ns, title, notebook)
 		assert.NoError(err)
 		assert.Equal(expectedNote, note)
 	})
@@ -87,10 +74,8 @@ func TestGetNote(t *testing.T) {
 		expectedError := errors.New("Expected error")
 
 		ns := new(mockNS)
-		c := new(mockClient)
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.getAllNotebooks = func() ([]*Notebook, error) { return nil, expectedError }
-		_, err := GetNote(c, title, "Notebook")
+		_, err := GetNote(ns, title, "Notebook")
 		assert.EqualError(err, expectedError.Error())
 	})
 }
@@ -101,9 +86,9 @@ func TestGetNoteContent(t *testing.T) {
 		title := "Note title"
 		expectedContent := "<p>Note content</p>"
 		expectedNote := &Note{Title: title}
-		c, ns := nsWithNote(expectedNote)
+		ns := nsWithNote(expectedNote)
 		ns.getNoteContent = func(guid string) (string, error) { return "<en-note>" + expectedContent + "</en-note>", nil }
-		n, err := GetNoteWithContent(c, title)
+		n, err := GetNoteWithContent(ns, title)
 		assert.NoError(err, "Should not return an error")
 		assert.Equal(expectedNote, n, "Note doesn't match")
 		assert.Equal(expectedContent, n.Body)
@@ -112,27 +97,18 @@ func TestGetNoteContent(t *testing.T) {
 		title := "Note title"
 		expectedError := errors.New("Expected error")
 		expectedNote := &Note{Title: title}
-		c, ns := nsWithNote(expectedNote)
+		ns := nsWithNote(expectedNote)
 		ns.getNoteContent = func(guid string) (string, error) { return "", expectedError }
-		_, err := GetNoteWithContent(c, title)
-		assert.Error(err, "Should return an error")
-		assert.Equal(expectedError, err, "Wrong error returned")
-	})
-	t.Run("return error from GetNoteClient", func(t *testing.T) {
-		title := "Note title"
-		expectedError := errors.New("Expected error")
-		c := new(mockClient)
-		c.getNotestore = func() (NotestoreClient, error) { return nil, expectedError }
-		_, err := GetNoteWithContent(c, title)
+		_, err := GetNoteWithContent(ns, title)
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedError, err, "Wrong error returned")
 	})
 	t.Run("return error from decoder", func(t *testing.T) {
 		title := "Note title"
 		note := &Note{Title: title}
-		c, ns := nsWithNote(note)
+		ns := nsWithNote(note)
 		ns.getNoteContent = func(string) (string, error) { return "", nil }
-		_, err := GetNoteWithContent(c, title)
+		_, err := GetNoteWithContent(ns, title)
 		assert.Error(err, "Expected an error")
 	})
 }
@@ -143,55 +119,35 @@ func TestSaveChanges(t *testing.T) {
 	body := "This is the note content"
 	expectedMDContent := XMLHeader + "<en-note><p>" + body + "</p>\n</en-note>"
 	expectedRawContent := XMLHeader + "<en-note><p>" + body + "</p></en-note>"
-	t.Run("return error from GetNoteStore", func(t *testing.T) {
-		client := new(mockClient)
-		client.getNotestore = func() (NotestoreClient, error) { return nil, expectedError }
-		// ctx := AddUseRawContentToContext(context.Background(), true)
-		err := SaveChanges(client, &Note{}, true)
-		assert.Error(err, "Should return an error")
-		assert.Equal(expectedError, err, "Wrong error returned")
-	})
 	t.Run("return error from UpdateNote", func(t *testing.T) {
-		client := new(mockClient)
 		ns := new(mockNS)
 		ns.updateNote = func(n *Note) error { return expectedError }
-		client.getNotestore = func() (NotestoreClient, error) { return ns, nil }
-		// ctx := AddUseRawContentToContext(context.Background(), false)
-		err := SaveChanges(client, &Note{}, false)
+		err := SaveChanges(ns, &Note{}, false)
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedError, err, "Wrong error returned")
 	})
 	t.Run("UpdateNote without content change", func(t *testing.T) {
-		client := new(mockClient)
 		ns := new(mockNS)
 		ns.updateNote = func(n *Note) error { return nil }
-		client.getNotestore = func() (NotestoreClient, error) { return ns, nil }
-		// ctx := AddUseRawContentToContext(context.Background(), false)
-		err := SaveChanges(client, &Note{}, false)
+		err := SaveChanges(ns, &Note{}, false)
 		assert.NoError(err, "Should not return an error")
 	})
 	t.Run("UpdateNote with MD content", func(t *testing.T) {
-		client := new(mockClient)
 		ns := new(mockNS)
 		note := new(Note)
 		note.MD = body
 		ns.updateNote = func(n *Note) error { return nil }
-		client.getNotestore = func() (NotestoreClient, error) { return ns, nil }
-		// ctx := AddUseRawContentToContext(context.Background(), false)
-		err := SaveChanges(client, note, false)
+		err := SaveChanges(ns, note, false)
 		assert.NoError(err, "Should not return an error")
 		assert.Equal(expectedMDContent, note.Body, "Note content doesn't match")
 	})
 	t.Run("UpdateNote with raw content", func(t *testing.T) {
-		client := new(mockClient)
 		ns := new(mockNS)
 		note := new(Note)
 		note.MD = body
 		note.Body = "<p>" + body + "</p>"
 		ns.updateNote = func(n *Note) error { return nil }
-		client.getNotestore = func() (NotestoreClient, error) { return ns, nil }
-		// ctx := AddUseRawContentToContext(context.Background(), true)
-		err := SaveChanges(client, note, true)
+		err := SaveChanges(ns, note, true)
 		assert.NoError(err, "Should not return an error")
 		assert.Equal(expectedRawContent, note.Body, "Note content doesn't match")
 	})
@@ -201,38 +157,32 @@ func TestChangeTitle(t *testing.T) {
 	assert := assert.New(t)
 	expectedError := errors.New("expected error")
 	t.Run("should change title", func(t *testing.T) {
-		c := new(mockClient)
 		ns := new(mockNS)
 		note := &Note{Title: "Old"}
 		var savedNote *Note
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.findNotes = func(*NoteFilter, int, int) ([]*Note, error) { return []*Note{note}, nil }
 		ns.updateNote = func(n *Note) error { savedNote = n; return nil }
 
-		err := ChangeTitle(c, "Old", "New")
+		err := ChangeTitle(ns, "Old", "New")
 		assert.NoError(err, "Should not return an error")
 		assert.Equal(note, savedNote, "Same note should be saved")
 		assert.Equal("New", savedNote.Title, "Title should be New")
 	})
 	t.Run("should handle error from saveChanges", func(t *testing.T) {
-		c := new(mockClient)
 		ns := new(mockNS)
 		note := &Note{Title: "Old"}
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.findNotes = func(*NoteFilter, int, int) ([]*Note, error) { return []*Note{note}, nil }
 		ns.updateNote = func(*Note) error { return expectedError }
 
-		err := ChangeTitle(c, "Old", "New")
+		err := ChangeTitle(ns, "Old", "New")
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedError, err, "Not the correct error")
 	})
 	t.Run("should handle error from GetNote", func(t *testing.T) {
-		c := new(mockClient)
 		ns := new(mockNS)
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.findNotes = func(*NoteFilter, int, int) ([]*Note, error) { return nil, expectedError }
 
-		err := ChangeTitle(c, "Old", "New")
+		err := ChangeTitle(ns, "Old", "New")
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedError, err, "Not the correct error")
 	})
@@ -246,7 +196,6 @@ func TestMoveNote(t *testing.T) {
 	notebookName := "New notebook"
 
 	t.Run("should move note", func(t *testing.T) {
-		c := new(mockClient)
 		ns := new(mockNS)
 
 		notebook := &Notebook{Name: notebookName, GUID: notebookGUID}
@@ -254,50 +203,43 @@ func TestMoveNote(t *testing.T) {
 
 		note := &Note{Title: noteName, Notebook: &Notebook{Name: "Old", GUID: "Old GUID"}}
 		var savedNote *Note
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.findNotes = func(*NoteFilter, int, int) ([]*Note, error) { return []*Note{note}, nil }
 		ns.updateNote = func(n *Note) error { savedNote = n; return nil }
 
-		err := MoveNote(c, noteName, notebookName)
+		err := MoveNote(ns, noteName, notebookName)
 		assert.NoError(err, "Should not return an error")
 		assert.Equal(note, savedNote, "Same note should be saved")
 		assert.Equal(notebook, savedNote.Notebook, "Incorrect notebook set")
 		assert.Equal(notebookGUID, savedNote.Notebook.GUID, "The notebook should be New")
 	})
 	t.Run("should handle error from saveChanges", func(t *testing.T) {
-		c := new(mockClient)
 		ns := new(mockNS)
 		notebook := &Notebook{Name: notebookName, GUID: notebookGUID}
 		note := &Note{Title: noteName, Notebook: notebook}
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.findNotes = func(*NoteFilter, int, int) ([]*Note, error) { return []*Note{note}, nil }
 		ns.getAllNotebooks = func() ([]*Notebook, error) { return []*Notebook{notebook}, nil }
 		ns.updateNote = func(*Note) error { return expectedError }
 
-		err := MoveNote(c, noteName, notebookName)
+		err := MoveNote(ns, noteName, notebookName)
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedError, err, "Not the correct error")
 	})
 	t.Run("should handle error from GetNote", func(t *testing.T) {
-		c := new(mockClient)
 		ns := new(mockNS)
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.findNotes = func(*NoteFilter, int, int) ([]*Note, error) { return nil, expectedError }
 
-		err := MoveNote(c, noteName, notebookName)
+		err := MoveNote(ns, noteName, notebookName)
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedError, err, "Not the correct error")
 	})
 	t.Run("should handle error from FindNote", func(t *testing.T) {
-		c := new(mockClient)
 		ns := new(mockNS)
 		note := &Note{Title: noteName}
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.findNotes = func(*NoteFilter, int, int) ([]*Note, error) { return []*Note{note}, nil }
 		ns.getAllNotebooks = func() ([]*Notebook, error) { return nil, expectedError }
 		ns.updateNote = func(*Note) error { return expectedError }
 
-		err := MoveNote(c, noteName, notebookName)
+		err := MoveNote(ns, noteName, notebookName)
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedError, err, "Not the correct error")
 	})
@@ -310,7 +252,7 @@ func TestDeleteNote(t *testing.T) {
 	expectedError := errors.New("expected error")
 	t.Run("should delete note", func(t *testing.T) {
 		note := &Note{Title: noteTitle, GUID: noteGUID}
-		c, ns := nsWithNote(note)
+		ns := nsWithNote(note)
 		ns.findNotes = func(*NoteFilter, int, int) ([]*Note, error) { return []*Note{note}, nil }
 		ns.deleteNote = func(g string) error {
 			if g == noteGUID {
@@ -318,38 +260,15 @@ func TestDeleteNote(t *testing.T) {
 			}
 			return errors.New("wrong GUID")
 		}
-		err := DeleteNote(c, noteTitle, "")
+		err := DeleteNote(ns, noteTitle, "")
 		assert.NoError(err, "Should note return an error")
-	})
-	t.Run("should return error from GetNoteStore", func(t *testing.T) {
-		note := &Note{Title: noteTitle, GUID: noteGUID}
-		c, ns := nsWithNote(note)
-		ns.findNotes = func(*NoteFilter, int, int) ([]*Note, error) { return []*Note{note}, nil }
-		count := 0
-		c.getNotestore = func() (NotestoreClient, error) {
-			if count == 0 {
-				count++
-				return ns, nil
-			}
-			return nil, expectedError
-		}
-		err := DeleteNote(c, noteTitle, "")
-		assert.Error(err, "Should note return an error")
-		assert.Equal(err, expectedError, "Wrong error returned")
-	})
-	t.Run("should return error from GetNote", func(t *testing.T) {
-		c := new(mockClient)
-		c.getNotestore = func() (NotestoreClient, error) { return nil, expectedError }
-		err := DeleteNote(c, noteTitle, "")
-		assert.Error(err, "Should note return an error")
-		assert.Equal(err, expectedError, "Wrong error returned")
 	})
 	t.Run("should return error from DeleteNote", func(t *testing.T) {
 		note := &Note{Title: noteTitle, GUID: noteGUID}
-		c, ns := nsWithNote(note)
+		ns := nsWithNote(note)
 		ns.findNotes = func(*NoteFilter, int, int) ([]*Note, error) { return []*Note{note}, nil }
 		ns.deleteNote = func(g string) error { return expectedError }
-		err := DeleteNote(c, noteTitle, "")
+		err := DeleteNote(ns, noteTitle, "")
 		assert.Error(err, "Should note return an error")
 		assert.Equal(err, expectedError, "Wrong error returned")
 	})
@@ -370,42 +289,28 @@ func TestSaveNewNote(t *testing.T) {
 	}
 	for _, test := range cases {
 		t.Run(test.Name, func(t *testing.T) {
-			c := new(mockClient)
 			ns := new(mockNS)
 			var createdNote *Note
-			c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 			ns.createNote = func(n *Note) error { createdNote = n; return nil }
-			err := SaveNewNote(c, test.N, test.Raw)
+			err := SaveNewNote(ns, test.N, test.Raw)
 			assert.NoError(err, "Should not return an error")
 			assert.Equal(test.N, createdNote, "Should save the correct note")
 		})
 	}
-	t.Run("return error from GetNoteStore", func(t *testing.T) {
-		c := new(mockClient)
-		c.getNotestore = func() (NotestoreClient, error) { return nil, expectedError }
-		err := SaveNewNote(c, &Note{}, false)
-		assert.Error(err, "should return an error")
-		assert.Equal(expectedError, err, "Wrong error returned")
-	})
 	t.Run("return error from CreateNote", func(t *testing.T) {
-		c := new(mockClient)
 		ns := new(mockNS)
-		c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 		ns.createNote = func(*Note) error { return expectedError }
-		err := SaveNewNote(c, &Note{}, false)
+		err := SaveNewNote(ns, &Note{}, false)
 		assert.Error(err, "should return an error")
 		assert.Equal(expectedError, err, "Wrong error returned")
 	})
-
 }
 
-func nsWithNote(note *Note) (*mockClient, *mockNS) {
+func nsWithNote(note *Note) *mockNS {
 	notes := []*Note{&Note{Title: "Other note"}, note}
 	ns := new(mockNS)
-	c := new(mockClient)
-	c.getNotestore = func() (NotestoreClient, error) { return ns, nil }
 	ns.findNotes = func(filter *NoteFilter, o, max int) ([]*Note, error) { return notes, nil }
-	return c, ns
+	return ns
 }
 
 type mockNS struct {
@@ -425,10 +330,6 @@ func (s *mockNS) UpdateNotebook(b *Notebook) error {
 
 func (s *mockNS) CreateNote(n *Note) error {
 	return s.createNote(n)
-}
-
-func (s *mockNS) GetClient() APIClient {
-	panic("not implemented")
 }
 
 func (s *mockNS) SaveNewNote(n *Note) error {
