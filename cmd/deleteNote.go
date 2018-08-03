@@ -46,7 +46,7 @@ To expunge the note you need to use the official client or the web client.`,
 		if err != nil {
 			return
 		}
-		err = clinote.DeleteNote(ns, args[0], nb)
+		err = clinote.DeleteNote(client.Config.Store(), ns, args[0], nb)
 		if err != nil {
 			fmt.Println("Error when deleting the note:", err)
 			os.Exit(1)

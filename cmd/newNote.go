@@ -107,7 +107,7 @@ func createNote(title, notebook string, edit, raw bool) {
 		return
 	}
 	if notebook != "" {
-		nb, err := clinote.FindNotebook(ns, notebook)
+		nb, err := clinote.FindNotebook(client.Config.Store(), ns, notebook)
 		if err != nil {
 			fmt.Println("Error when searching for notebook:", err)
 			return

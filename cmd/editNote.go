@@ -74,10 +74,10 @@ with the notebook flag.`,
 			return
 		}
 		if title != "" {
-			clinote.ChangeTitle(ns, args[0], title)
+			clinote.ChangeTitle(client.Config.Store(), ns, args[0], title)
 		}
 		if notebook != "" {
-			clinote.MoveNote(ns, args[0], notebook)
+			clinote.MoveNote(client.Config.Store(), ns, args[0], notebook)
 		}
 
 		if title == "" && notebook == "" {
@@ -102,7 +102,7 @@ func editNote(client *evernote.Client, title string, raw bool) error {
 	if err != nil {
 		return err
 	}
-	n, err := clinote.GetNoteWithContent(ns, title)
+	n, err := clinote.GetNoteWithContent(client.Config.Store(), ns, title)
 	if err != nil {
 		return err
 	}

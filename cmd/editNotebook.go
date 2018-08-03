@@ -71,7 +71,7 @@ define the new stack.`,
 		if err != nil {
 			return
 		}
-		err = clinote.UpdateNotebook(ns, args[0], notebook)
+		err = clinote.UpdateNotebook(client.Config.Store(), ns, args[0], notebook)
 		if err != nil {
 			fmt.Println("Error when editing the notebook:", err)
 			os.Exit(1)

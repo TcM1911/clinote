@@ -87,7 +87,7 @@ func findNotes(cmd *cobra.Command, args []string) {
 		return
 	}
 	if searchBook != "" {
-		book, err := clinote.FindNotebook(ns, searchBook)
+		book, err := clinote.FindNotebook(client.Config.Store(), ns, searchBook)
 		if err != nil {
 			fmt.Println("Error when trying to filter by notebook: ", err)
 			os.Exit(1)

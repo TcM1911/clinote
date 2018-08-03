@@ -38,8 +38,8 @@ type Notebook struct {
 }
 
 // UpdateNotebook updates the notebook.
-func UpdateNotebook(ns NotestoreClient, name string, notebook *Notebook) error {
-	b, err := findNotebook(ns, name)
+func UpdateNotebook(db Storager, ns NotestoreClient, name string, notebook *Notebook) error {
+	b, err := findNotebook(db, ns, name)
 	if err != nil {
 		return err
 	}
@@ -54,12 +54,12 @@ func UpdateNotebook(ns NotestoreClient, name string, notebook *Notebook) error {
 
 // FindNotebook gets the notebook matching with the name.
 // If no notebook is found, nil is returned.
-func FindNotebook(ns NotestoreClient, name string) (*Notebook, error) {
-	return findNotebook(ns, name)
+func FindNotebook(db Storager, ns NotestoreClient, name string) (*Notebook, error) {
+	return findNotebook(db, ns, name)
 }
 
-func findNotebook(ns NotestoreClient, name string) (*Notebook, error) {
-	bs, err := ns.GetAllNotebooks()
+func findNotebook(db Storager, ns NotestoreClient, name string) (*Notebook, error) {
+	bs, err := GetNotebooks(db, ns, false)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +72,24 @@ func findNotebook(ns NotestoreClient, name string) (*Notebook, error) {
 }
 
 // GetNotebooks returns all the user's notebooks.
-func GetNotebooks(ns NotestoreClient) ([]*Notebook, error) {
-	return ns.GetAllNotebooks()
+func GetNotebooks(db Storager, ns NotestoreClient, forceSync bool) ([]*Notebook, error) {
+	list, err := db.GetNotebookCache()
+	if err != nil {
+		return nil, err
+	}
+	if !list.IsOutdated() && len(list.Notebooks) > 0 && !forceSync {
+		return list.Notebooks, nil
+	}
+	bs, err := ns.GetAllNotebooks()
+	if err != nil {
+		return nil, err
+	}
+	list = NewNotebookCacheList(bs)
+	err = db.StoreNotebookList(list)
+	if err != nil {
+		return nil, err
+	}
+	return bs, nil
 }
 
 // GetNotebook returns a notebook from the user's notestore.

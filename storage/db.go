@@ -29,11 +29,13 @@ import (
 // List of buckets
 var (
 	settingsBucket = []byte("settings")
+	cacheBucket    = []byte("cache")
 )
 
 // List of keys
 var (
-	settingsKey = []byte("user_settings")
+	settingsKey      = []byte("user_settings")
+	notebookCacheKey = []byte("notebook_cache")
 )
 
 var (
@@ -54,37 +56,46 @@ type Database struct {
 	bolt *bolt.DB
 }
 
-// GetSettings returns the settings from the database.
-func (d *Database) GetSettings() (*clinote.Settings, error) {
+func (d *Database) getData(bucket, key []byte) ([]byte, error) {
 	var data []byte
 	err := d.bolt.View(func(t *bolt.Tx) error {
-		b := t.Bucket(settingsBucket)
+		b := t.Bucket(bucket)
 		if b == nil {
 			return errNoBucket
 		}
-		data = b.Get(settingsKey)
+		data = b.Get(key)
 		return nil
 	})
 	if err == errNoBucket {
-		s := new(clinote.Settings)
 		err := d.bolt.Update(func(t *bolt.Tx) error {
-			b, err := t.CreateBucket(settingsBucket)
-			if err != nil {
-				return nil
-			}
-			data, err := json.Marshal(s)
+			_, err := t.CreateBucket(bucket)
 			if err != nil {
 				return err
 			}
-			return b.Put(settingsKey, data)
+			return nil
 		})
-		return s, err
+		return data, err
 	}
-	if err != nil {
-		return nil, err
-	}
+	return data, err
+}
+
+func (d *Database) storeData(bucket, key, data []byte) error {
+	return d.bolt.Update(func(t *bolt.Tx) error {
+		b, err := t.CreateBucketIfNotExists(bucket)
+		if err != nil {
+			return err
+		}
+		return b.Put(key, data)
+	})
+}
+
+// GetSettings returns the settings from the database.
+func (d *Database) GetSettings() (*clinote.Settings, error) {
 	var settings clinote.Settings
-	err = json.Unmarshal(data, &settings)
+	data, err := d.getData(settingsBucket, settingsKey)
+	if err == nil && data != nil {
+		err = json.Unmarshal(data, &settings)
+	}
 	return &settings, err
 }
 
@@ -94,13 +105,26 @@ func (d *Database) StoreSettings(settings *clinote.Settings) error {
 	if err != nil {
 		return err
 	}
-	return d.bolt.Update(func(t *bolt.Tx) error {
-		b, err := t.CreateBucketIfNotExists(settingsBucket)
-		if err != nil {
-			return err
-		}
-		return b.Put(settingsKey, data)
-	})
+	return d.storeData(settingsBucket, settingsKey, data)
+}
+
+// GetNotebookCache returns the stored NotebookCacheList.
+func (d *Database) GetNotebookCache() (*clinote.NotebookCacheList, error) {
+	var list clinote.NotebookCacheList
+	data, err := d.getData(cacheBucket, notebookCacheKey)
+	if err == nil && data != nil {
+		err = json.Unmarshal(data, &list)
+	}
+	return &list, err
+}
+
+// StoreNotebookList saves the list to the database.
+func (d *Database) StoreNotebookList(list *clinote.NotebookCacheList) error {
+	data, err := json.Marshal(list)
+	if err != nil {
+		return err
+	}
+	return d.storeData(cacheBucket, notebookCacheKey, data)
 }
 
 // Close shuts down the connection to the database.

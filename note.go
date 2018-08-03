@@ -90,10 +90,10 @@ func FindNotes(ns NotestoreClient, filter *NoteFilter, offset int, count int) ([
 // GetNote gets the note metadata in the notebook from the server.
 // If the notebook is an empty string, the first matching note will
 // be returned.
-func GetNote(ns NotestoreClient, title, notebook string) (*Note, error) {
+func GetNote(db Storager, ns NotestoreClient, title, notebook string) (*Note, error) {
 	filter := new(NoteFilter)
 	if notebook != "" {
-		nb, err := findNotebook(ns, notebook)
+		nb, err := findNotebook(db, ns, notebook)
 		if err != nil {
 			return nil, err
 		}
@@ -118,8 +118,8 @@ func GetNote(ns NotestoreClient, title, notebook string) (*Note, error) {
 }
 
 // GetNoteWithContent returns the note with content from the user's notestore.
-func GetNoteWithContent(ns NotestoreClient, title string) (*Note, error) {
-	n, err := GetNote(ns, title, "")
+func GetNoteWithContent(db Storager, ns NotestoreClient, title string) (*Note, error) {
+	n, err := GetNote(db, ns, title, "")
 	content, err := ns.GetNoteContent(n.GUID)
 	if err != nil {
 		return nil, err
@@ -142,8 +142,8 @@ func SaveChanges(ns NotestoreClient, n *Note, useRawContent bool) error {
 }
 
 // ChangeTitle changes the note's title.
-func ChangeTitle(ns NotestoreClient, old, new string) error {
-	n, err := GetNote(ns, old, "")
+func ChangeTitle(db Storager, ns NotestoreClient, old, new string) error {
+	n, err := GetNote(db, ns, old, "")
 	if err != nil {
 		return err
 	}
@@ -152,12 +152,12 @@ func ChangeTitle(ns NotestoreClient, old, new string) error {
 }
 
 // MoveNote moves the note to a new notebook.
-func MoveNote(ns NotestoreClient, noteTitle, notebookName string) error {
-	n, err := GetNote(ns, noteTitle, "")
+func MoveNote(db Storager, ns NotestoreClient, noteTitle, notebookName string) error {
+	n, err := GetNote(db, ns, noteTitle, "")
 	if err != nil {
 		return err
 	}
-	b, err := FindNotebook(ns, notebookName)
+	b, err := FindNotebook(db, ns, notebookName)
 	if err != nil {
 		return err
 	}
@@ -166,8 +166,8 @@ func MoveNote(ns NotestoreClient, noteTitle, notebookName string) error {
 }
 
 // DeleteNote moves a note from the notebook to the trash can.
-func DeleteNote(ns NotestoreClient, title, notebook string) error {
-	n, err := GetNote(ns, title, notebook)
+func DeleteNote(db Storager, ns NotestoreClient, title, notebook string) error {
+	n, err := GetNote(db, ns, title, notebook)
 	if err != nil {
 		return err
 	}

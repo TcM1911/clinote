@@ -28,16 +28,8 @@ import (
 
 func TestSettings(t *testing.T) {
 	assert := assert.New(t)
-	tmpDir, err := ioutil.TempDir("", "clinote-test")
-	if err != nil {
-		t.Fatalf("Problem with creating temp folder: %s\n", err)
-	}
-
+	db, tmpDir := setupTestDB(t)
 	expected := &clinote.Settings{APIKey: "test session"}
-	db, err := Open(tmpDir)
-	if err != nil {
-		t.Fatalf("No db: %s\n", err)
-	}
 
 	t.Run("Store", func(t *testing.T) {
 		err := db.StoreSettings(expected)
@@ -51,22 +43,48 @@ func TestSettings(t *testing.T) {
 	})
 
 	t.Run("Handle_no_bucket", func(t *testing.T) {
-		tmpDir, err := ioutil.TempDir("", "clinote-test")
-		if err != nil {
-			t.Fatalf("Problem with creating temp folder: %s\n", err)
-		}
-		db, err := Open(tmpDir)
-		if err != nil {
-			t.Fatalf("No db: %s\n", err)
-		}
+		db, tmpDir := setupTestDB(t)
 		expected := new(clinote.Settings)
 		actual, err := db.GetSettings()
 		assert.NoError(err, "Should create a bucket without problems")
 		assert.Equal(expected, actual, "Should return an empty settings")
 		db.Close()
-		os.Remove(tmpDir)
+		os.RemoveAll(tmpDir)
 	})
 	// Cleanup
 	db.Close()
-	os.Remove(tmpDir)
+	os.RemoveAll(tmpDir)
+}
+
+func TestNotebookCaching(t *testing.T) {
+	assert := assert.New(t)
+	db, tmpDir := setupTestDB(t)
+	defer os.RemoveAll(tmpDir)
+	defer db.Close()
+	books := make([]*clinote.Notebook, 3)
+	expected := clinote.NewNotebookCacheList(books)
+
+	t.Run("Store", func(t *testing.T) {
+		err := db.StoreNotebookList(expected)
+		assert.NoError(err, "Should not fail when storing notebook cache")
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		actual, err := db.GetNotebookCache()
+		assert.NoError(err, "Should not return an error")
+		assert.Equal(expected, actual, "Wrong notebook cache returned")
+	})
+}
+
+func setupTestDB(t *testing.T) (*Database, string) {
+	tmpDir, err := ioutil.TempDir("", "clinote-test")
+	if err != nil {
+		t.Fatalf("Problem with creating temp folder: %s\n", err)
+	}
+
+	db, err := Open(tmpDir)
+	if err != nil {
+		t.Fatalf("No db: %s\n", err)
+	}
+	return db, tmpDir
 }

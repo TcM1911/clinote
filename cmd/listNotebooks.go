@@ -31,22 +31,28 @@ var listNotebooksCmd = &cobra.Command{
 	Long: `
 List notebooks returns all active notebooks.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		listNotebooks()
+		sync, err := cmd.Flags().GetBool("sync")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		listNotebooks(sync)
 	},
 }
 
 func init() {
 	notebookCmd.AddCommand(listNotebooksCmd)
+	listNotebooksCmd.Flags().BoolP("sync", "s", false, "Force a resync of notebooks from the server.")
 }
 
-func listNotebooks() {
+func listNotebooks(sync bool) {
 	client := defaultClient()
 	defer client.Close()
 	ns, err := client.GetNoteStore()
 	if err != nil {
 		return
 	}
-	bs, err := clinote.GetNotebooks(ns)
+	bs, err := clinote.GetNotebooks(client.Config.Store(), ns, sync)
 	if err != nil {
 		fmt.Println("Error when getting notebooks:", err)
 		os.Exit(1)

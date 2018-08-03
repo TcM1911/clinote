@@ -24,6 +24,10 @@ type Storager interface {
 	io.Closer
 	GetSettings() (*Settings, error)
 	StoreSettings(*Settings) error
+	// GetNotebookCache returns the stored NotebookCacheList.
+	GetNotebookCache() (*NotebookCacheList, error)
+	// StoreNotebookList saves the list to the database.
+	StoreNotebookList(list *NotebookCacheList) error
 }
 
 // Settings is a struct holding the user's settings for the application.
