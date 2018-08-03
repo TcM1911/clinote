@@ -72,8 +72,15 @@ func TestNotebookCaching(t *testing.T) {
 	t.Run("Get", func(t *testing.T) {
 		actual, err := db.GetNotebookCache()
 		assert.NoError(err, "Should not return an error")
-		assert.Equal(expected, actual, "Wrong notebook cache returned")
+		compareCacheList(assert, expected, actual)
+		// assert.Equal(expected, actual, "Wrong notebook cache returned")
 	})
+}
+
+func compareCacheList(assert *assert.Assertions, expected *clinote.NotebookCacheList, actual *clinote.NotebookCacheList) {
+	assert.Equal(expected.Limit, actual.Limit)
+	assert.Equal(expected.Notebooks, actual.Notebooks)
+	assert.True(expected.Timestamp.Equal(actual.Timestamp), "Wrong timestamp")
 }
 
 func setupTestDB(t *testing.T) (*Database, string) {
