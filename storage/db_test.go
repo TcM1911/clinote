@@ -73,7 +73,6 @@ func TestNotebookCaching(t *testing.T) {
 		actual, err := db.GetNotebookCache()
 		assert.NoError(err, "Should not return an error")
 		compareCacheList(assert, expected, actual)
-		// assert.Equal(expected, actual, "Wrong notebook cache returned")
 	})
 }
 
