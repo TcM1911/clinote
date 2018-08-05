@@ -34,12 +34,12 @@ coverage: coverage_evernote
 
 build_386:
 	mkdir -p target/clinote-$(VERSION)-i386
-	GOOS=linux GOARCH=386 go build -v -a -o target/clinote-$(VERSION)-i386/clinote
+	GOOS=linux GOARCH=386 go build -v -a -o target/clinote-$(VERSION)-i386/clinote ./cmd
 	cp $(RELEASE_FILES) target/clinote-$(VERSION)-i386/
 
 build_amd64:
 	mkdir -p target/clinote-$(VERSION)-amd64
-	GOOS=linux GOARCH=amd64 go build -v -a -o target/clinote-$(VERSION)-amd64/clinote
+	GOOS=linux GOARCH=amd64 go build -v -a -o target/clinote-$(VERSION)-amd64/clinote ./cmd
 	cp $(RELEASE_FILES) target/clinote-$(VERSION)-amd64/
 
 release_386:
@@ -59,7 +59,7 @@ release_macos:
 
 build_macos:
 	mkdir -p target/clinote-$(VERSION)-macos
-	GOOS=darwin GOARCH=amd64 go build -v -a -o target/clinote-$(VERSION)-macos/clinote
+	GOOS=darwin GOARCH=amd64 go build -v -a -o target/clinote-$(VERSION)-macos/clinote ./cmd
 	cp $(RELEASE_FILES) target/clinote-$(VERSION)-macos/
 
 build_all: build_386 build_amd64
