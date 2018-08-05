@@ -17,7 +17,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package config
+package clinote
 
 import (
 	"os"

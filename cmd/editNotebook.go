@@ -15,13 +15,13 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/TcM1911/clinote/evernote"
+	"github.com/TcM1911/clinote"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +40,7 @@ define the new stack.`,
 			return
 		}
 		change := false
-		notebook := new(evernote.Notebook)
+		notebook := new(clinote.Notebook)
 		name, err := cmd.Flags().GetString("name")
 		if err != nil {
 			fmt.Println("Error when parsing new notebook name:", err)
@@ -66,7 +66,12 @@ define the new stack.`,
 			return
 		}
 		client := defaultClient()
-		err = evernote.UpdateNotebook(client, args[0], notebook)
+		defer client.Close()
+		ns, err := client.GetNoteStore()
+		if err != nil {
+			return
+		}
+		err = clinote.UpdateNotebook(client.Config.Store(), ns, args[0], notebook)
 		if err != nil {
 			fmt.Println("Error when editing the notebook:", err)
 			os.Exit(1)

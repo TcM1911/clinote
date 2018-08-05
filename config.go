@@ -15,24 +15,31 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package config
+package clinote
 
 import (
 	"fmt"
+	"io"
 	"os"
 )
 
 // Configuration is the interface for a configuration struct.
 type Configuration interface {
+	io.Closer
 	// GetConfigFolder returns the folder used to store configurations.
 	GetConfigFolder() string
 	// GetCacheFolder returns the cache folder.
 	GetCacheFolder() string
+	// Store returns the backend storage.
+	Store() Storager
 }
 
 // DefaultConfig uses shared config and cache folder with other
 // instances of DefaultConfig structs.
-type DefaultConfig struct{}
+type DefaultConfig struct {
+	// DB is the backend storage for the client.
+	DB Storager
+}
 
 // GetConfigFolder returns the folder used to store configurations.
 func (*DefaultConfig) GetConfigFolder() string {
@@ -56,4 +63,14 @@ func (*DefaultConfig) GetCacheFolder() string {
 		}
 	}
 	return cacheDir
+}
+
+// Store returns a handler to BoltDB.
+func (c *DefaultConfig) Store() Storager {
+	return c.DB
+}
+
+// Close closes the BoltDB handler.
+func (c *DefaultConfig) Close() error {
+	return c.DB.Close()
 }

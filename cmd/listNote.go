@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/TcM1911/clinote/evernote"
+	"github.com/TcM1911/clinote"
 	"github.com/spf13/cobra"
 )
 
@@ -57,10 +57,11 @@ func init() {
 
 func findNotes(cmd *cobra.Command, args []string) {
 	client := defaultClient()
+	defer client.Close()
 
 	// Create filter
-	filter := &evernote.NoteFilter{}
-	filter.Order = evernote.NoteFilterOrderUpdated
+	filter := &clinote.NoteFilter{}
+	filter.Order = clinote.NoteFilterOrderUpdated
 	c, err := cmd.Flags().GetInt("count")
 	if err != nil {
 		fmt.Println("Error when parsing count value, using default:", err)
@@ -81,8 +82,12 @@ func findNotes(cmd *cobra.Command, args []string) {
 		filter.Words = search
 	}
 
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return
+	}
 	if searchBook != "" {
-		book, err := evernote.FindNotebook(client, searchBook)
+		book, err := clinote.FindNotebook(client.Config.Store(), ns, searchBook)
 		if err != nil {
 			fmt.Println("Error when trying to filter by notebook: ", err)
 			os.Exit(1)
@@ -90,7 +95,11 @@ func findNotes(cmd *cobra.Command, args []string) {
 		filter.NotebookGUID = book.GUID
 	}
 
-	list, err := evernote.FindNotes(client, filter, 0, c)
+	list, err := clinote.FindNotes(ns, filter, 0, c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = client.Config.Store().SaveSearch(list)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -104,7 +113,7 @@ func findNotes(cmd *cobra.Command, args []string) {
 		"Notebook",
 		"Title"))...)
 	for i, n := range list {
-		book, err := evernote.GetNotebook(client, n.Notebook.GUID)
+		book, err := clinote.GetNotebook(ns, n.Notebook.GUID)
 		bookName := ""
 		if err != nil {
 			log.Println("Error when getting notebook name:", err)

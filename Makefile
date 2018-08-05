@@ -5,10 +5,10 @@ DIST_FOLDER=dist
 RELEASE_FILES=CHANGELOG.md LICENSE README.md TODO.md
 
 build:
-	go build -v
+	go build -v -o clinote ./cmd/...
 
 build_dev:
-	go build -v -tags=dev
+	go build -v -tags=dev -o clinote ./cmd/...
 
 clean:
 	rm -f clinote

@@ -15,13 +15,14 @@
  * Copyright (C) Joakim Kennedy, 2016-2017
  */
 
-package evernote
+package clinote
 
 import (
 	"bytes"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/TcM1911/clinote/markdown"
@@ -83,25 +84,30 @@ type NoteFilter struct {
 }
 
 // FindNotes searches for notes.
-func FindNotes(client APIClient, filter *NoteFilter, offset int, count int) ([]*Note, error) {
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return nil, err
-	}
+func FindNotes(ns NotestoreClient, filter *NoteFilter, offset int, count int) ([]*Note, error) {
 	return ns.FindNotes(filter, offset, count)
 }
 
 // GetNote gets the note metadata in the notebook from the server.
 // If the notebook is an empty string, the first matching note will
 // be returned.
-func GetNote(client APIClient, title, notebook string) (*Note, error) {
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return nil, err
+func GetNote(db Storager, ns NotestoreClient, title, notebook string) (*Note, error) {
+	// Check if the title is a number. If it is
+	// assume that the user wants to get the note
+	// from a saved search.
+	index, err := strconv.Atoi(title)
+	if err == nil && index > 0 {
+		// Get note from saved search
+		notes, err := db.GetSearch()
+		if err != nil {
+			return nil, err
+		}
+		return notes[index-1], nil
 	}
+
 	filter := new(NoteFilter)
 	if notebook != "" {
-		nb, err := findNotebook(ns, notebook)
+		nb, err := findNotebook(db, ns, notebook)
 		if err != nil {
 			return nil, err
 		}
@@ -126,12 +132,8 @@ func GetNote(client APIClient, title, notebook string) (*Note, error) {
 }
 
 // GetNoteWithContent returns the note with content from the user's notestore.
-func GetNoteWithContent(client APIClient, title string) (*Note, error) {
-	n, err := GetNote(client, title, "")
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return nil, err
-	}
+func GetNoteWithContent(db Storager, ns NotestoreClient, title string) (*Note, error) {
+	n, err := GetNote(db, ns, title, "")
 	content, err := ns.GetNoteContent(n.GUID)
 	if err != nil {
 		return nil, err
@@ -148,42 +150,38 @@ func GetNoteWithContent(client APIClient, title string) (*Note, error) {
 }
 
 // SaveChanges updates the changes to the note on the server.
-func SaveChanges(client APIClient, n *Note, useRawContent bool) error {
+func SaveChanges(ns NotestoreClient, n *Note, useRawContent bool) error {
 	// useRawContent := GetUseRawContentFromContext(ctx)
-	return saveChanges(client, n, true, useRawContent)
+	return saveChanges(ns, n, true, useRawContent)
 }
 
 // ChangeTitle changes the note's title.
-func ChangeTitle(client APIClient, old, new string) error {
-	n, err := GetNote(client, old, "")
+func ChangeTitle(db Storager, ns NotestoreClient, old, new string) error {
+	n, err := GetNote(db, ns, old, "")
 	if err != nil {
 		return err
 	}
 	n.Title = new
-	return saveChanges(client, n, false, false)
+	return saveChanges(ns, n, false, false)
 }
 
 // MoveNote moves the note to a new notebook.
-func MoveNote(client APIClient, noteTitle, notebookName string) error {
-	n, err := GetNote(client, noteTitle, "")
+func MoveNote(db Storager, ns NotestoreClient, noteTitle, notebookName string) error {
+	n, err := GetNote(db, ns, noteTitle, "")
 	if err != nil {
 		return err
 	}
-	b, err := FindNotebook(client, notebookName)
+	b, err := FindNotebook(db, ns, notebookName)
 	if err != nil {
 		return err
 	}
 	n.Notebook = b
-	return saveChanges(client, n, false, false)
+	return saveChanges(ns, n, false, false)
 }
 
 // DeleteNote moves a note from the notebook to the trash can.
-func DeleteNote(client APIClient, title, notebook string) error {
-	n, err := GetNote(client, title, notebook)
-	if err != nil {
-		return err
-	}
-	ns, err := client.GetNoteStore()
+func DeleteNote(db Storager, ns NotestoreClient, title, notebook string) error {
+	n, err := GetNote(db, ns, title, notebook)
 	if err != nil {
 		return err
 	}
@@ -194,11 +192,7 @@ func DeleteNote(client APIClient, title, notebook string) error {
 	return nil
 }
 
-func saveChanges(client APIClient, n *Note, updateContent, useRawContent bool) error {
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return err
-	}
+func saveChanges(ns NotestoreClient, n *Note, updateContent, useRawContent bool) error {
 	if updateContent {
 		body := toXML(n.MD)
 		if useRawContent {
@@ -206,7 +200,7 @@ func saveChanges(client APIClient, n *Note, updateContent, useRawContent bool) e
 		}
 		n.Body = body
 	}
-	err = ns.UpdateNote(n)
+	err := ns.UpdateNote(n)
 	if err != nil {
 		return err
 	}
@@ -214,7 +208,7 @@ func saveChanges(client APIClient, n *Note, updateContent, useRawContent bool) e
 }
 
 // SaveNewNote pushes the new note to the server.
-func SaveNewNote(client APIClient, n *Note, raw bool) error {
+func SaveNewNote(ns NotestoreClient, n *Note, raw bool) error {
 	var body string
 	if !raw && n.MD != "" {
 		body = toXML(n.MD)
@@ -224,11 +218,7 @@ func SaveNewNote(client APIClient, n *Note, raw bool) error {
 		body = XMLHeader + "<en-note></en-note>"
 	}
 	n.Body = body
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return err
-	}
-	if err = ns.CreateNote(n); err != nil {
+	if err := ns.CreateNote(n); err != nil {
 		return err
 	}
 	return nil

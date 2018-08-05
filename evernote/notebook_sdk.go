@@ -18,32 +18,24 @@
 package evernote
 
 import (
-	"errors"
 	"sync"
 
+	"github.com/TcM1911/clinote"
 	"github.com/TcM1911/evernote-sdk-golang/types"
-)
-
-var (
-	// ErrNoNotebookFound is returned if no matching notebook was found.
-	ErrNoNotebookFound = errors.New("no notebook found")
-	// ErrNoNotebookCached is returned when trying to update a notebook
-	// that hasn't been pulled from the server.
-	ErrNoNotebookCached = errors.New("no notebook found")
 )
 
 var notebookMu sync.Mutex
 var cachedNotebooks map[types.GUID]*types.Notebook
 
-func convertNotebooks(bs []*types.Notebook) []*Notebook {
-	a := make([]*Notebook, len(bs), len(bs))
+func convertNotebooks(bs []*types.Notebook) []*clinote.Notebook {
+	a := make([]*clinote.Notebook, len(bs), len(bs))
 	for i, b := range bs {
-		a[i] = &Notebook{GUID: string(b.GetGUID()), Name: b.GetName(), Stack: b.GetStack()}
+		a[i] = &clinote.Notebook{GUID: string(b.GetGUID()), Name: b.GetName(), Stack: b.GetStack()}
 	}
 	return a
 }
 
-func transferNotebookData(src *Notebook, dst *types.Notebook) {
+func transferNotebookData(src *clinote.Notebook, dst *types.Notebook) {
 	dst.Name = &(src.Name)
 	if src.Stack != "" {
 		dst.Stack = &(src.Stack)
@@ -63,11 +55,11 @@ func getCachedNotebook(guid types.GUID) (*types.Notebook, error) {
 	notebookMu.Lock()
 	defer notebookMu.Unlock()
 	if cachedNotebooks == nil {
-		return nil, ErrNoNotebookCached
+		return nil, clinote.ErrNoNotebookCached
 	}
 	nb, ok := cachedNotebooks[guid]
 	if !ok {
-		return nil, ErrNoNotebookFound
+		return nil, clinote.ErrNoNotebookFound
 	}
 	return nb, nil
 }

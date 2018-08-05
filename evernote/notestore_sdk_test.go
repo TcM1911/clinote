@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/TcM1911/clinote"
 	"github.com/TcM1911/evernote-sdk-golang/notestore"
 	"github.com/TcM1911/evernote-sdk-golang/types"
 	"github.com/stretchr/testify/assert"
@@ -14,20 +15,19 @@ var errExpected = errors.New("expected")
 func TestGetAllNotebooks(t *testing.T) {
 	assert := assert.New(t)
 	token := "token"
-	c := &mockClient{apiToken: token}
 	t.Run("Return error from api", func(t *testing.T) {
 		api := &mockAPI{listNotebooks: func(key string) ([]*types.Notebook, error) { return nil, errExpected }}
-		ns := &Notestore{client: c, evernoteNS: api}
+		ns := &Notestore{apiToken: token, evernoteNS: api}
 		books, err := ns.GetAllNotebooks()
 		assert.Nil(books, "No notebooks should be returned")
 		assert.Equal(errExpected, err, "Wrong error returned")
 	})
 	t.Run("Return all books", func(t *testing.T) {
 		title := "Name"
-		expectedBooks := []*Notebook{&Notebook{Name: title}}
+		expectedBooks := []*clinote.Notebook{&clinote.Notebook{Name: title}}
 		books := []*types.Notebook{&types.Notebook{Name: &title}}
 		api := &mockAPI{listNotebooks: func(key string) ([]*types.Notebook, error) { return books, nil }}
-		ns := &Notestore{client: c, evernoteNS: api}
+		ns := &Notestore{apiToken: token, evernoteNS: api}
 		bs, err := ns.GetAllNotebooks()
 		assert.Equal(expectedBooks, bs, "Notebooks should be returned")
 		assert.NoError(err, "No error returned")
@@ -37,21 +37,20 @@ func TestGetAllNotebooks(t *testing.T) {
 func TestUpdateNotebookSDK(t *testing.T) {
 	assert := assert.New(t)
 	token := "token"
-	c := &mockClient{apiToken: token}
 	guid := "guid"
 	t.Run("Return ErrNoNotebookCached", func(t *testing.T) {
-		ns := &Notestore{client: c, evernoteNS: nil}
-		err := ns.UpdateNotebook(&Notebook{})
-		assert.Equal(ErrNoNotebookCached, err, "No cached notebooks")
+		ns := &Notestore{apiToken: token, evernoteNS: nil}
+		err := ns.UpdateNotebook(&clinote.Notebook{})
+		assert.Equal(clinote.ErrNoNotebookCached, err, "No cached notebooks")
 	})
 	t.Run("Return ErrNoNotebookFound", func(t *testing.T) {
 		cachedGUID := types.GUID("another guid")
 		cachedNB := &types.Notebook{GUID: &cachedGUID}
 		notCached := "not cached"
 		cacheNotebook(cachedNB)
-		ns := &Notestore{client: c, evernoteNS: nil}
-		err := ns.UpdateNotebook(&Notebook{GUID: notCached})
-		assert.Equal(ErrNoNotebookFound, err, "Notebook not cached")
+		ns := &Notestore{apiToken: token, evernoteNS: nil}
+		err := ns.UpdateNotebook(&clinote.Notebook{GUID: notCached})
+		assert.Equal(clinote.ErrNoNotebookFound, err, "Notebook not cached")
 	})
 	t.Run("Return error from api", func(t *testing.T) {
 		oldTitle := "Old title"
@@ -60,8 +59,8 @@ func TestUpdateNotebookSDK(t *testing.T) {
 		cachedNotebook := &types.Notebook{GUID: &savedGUID, Name: &oldTitle}
 		cacheNotebook(cachedNotebook)
 		api := &mockAPI{updateNotebook: func(k string, nb *types.Notebook) (int32, error) { return int32(0), errExpected }}
-		ns := &Notestore{client: c, evernoteNS: api}
-		book := &Notebook{GUID: guid, Name: newTitle}
+		ns := &Notestore{apiToken: token, evernoteNS: api}
+		book := &clinote.Notebook{GUID: guid, Name: newTitle}
 		err := ns.UpdateNotebook(book)
 		assert.Error(err, "Should return error from api call")
 	})
@@ -73,8 +72,8 @@ func TestUpdateNotebookSDK(t *testing.T) {
 		cacheNotebook(cachedNotebook)
 		var saved *types.Notebook
 		api := &mockAPI{updateNotebook: func(k string, nb *types.Notebook) (int32, error) { saved = nb; return int32(0), nil }}
-		ns := &Notestore{client: c, evernoteNS: api}
-		book := &Notebook{GUID: guid, Name: newTitle}
+		ns := &Notestore{apiToken: token, evernoteNS: api}
+		book := &clinote.Notebook{GUID: guid, Name: newTitle}
 		err := ns.UpdateNotebook(book)
 		assert.NoError(err, "Should update without error")
 		assert.Equal(newTitle, *saved.Name, "Should update notebook name")
@@ -84,13 +83,12 @@ func TestUpdateNotebookSDK(t *testing.T) {
 func TestCreateNotebookSDK(t *testing.T) {
 	assert := assert.New(t)
 	token := "token"
-	c := &mockClient{apiToken: token}
 	var saved *types.Notebook
 	name := "Notebook name"
 	stack := "Stack name"
-	nb := &Notebook{Name: name, Stack: stack}
+	nb := &clinote.Notebook{Name: name, Stack: stack}
 	api := &mockAPI{createNotebook: func(k string, nb *types.Notebook) (*types.Notebook, error) { saved = nb; return nil, errExpected }}
-	ns := &Notestore{client: c, evernoteNS: api}
+	ns := &Notestore{apiToken: token, evernoteNS: api}
 	err := ns.CreateNotebook(nb, false)
 	assert.Equal(errExpected, err, "Wrong error returned")
 	assert.Equal(name, *saved.Name, "Wrong notebook name")
@@ -100,16 +98,15 @@ func TestCreateNotebookSDK(t *testing.T) {
 func TestCreateNoteSDK(t *testing.T) {
 	assert := assert.New(t)
 	token := "token"
-	c := &mockClient{apiToken: token}
 	var saved *types.Note
 	notebookGUID := "Some GUID"
-	note := &Note{
-		Notebook: &Notebook{GUID: notebookGUID, Name: "Name"},
+	note := &clinote.Note{
+		Notebook: &clinote.Notebook{GUID: notebookGUID, Name: "Name"},
 		Title:    "Note title",
 		Body:     "Note body",
 	}
 	ns := &Notestore{
-		client:     c,
+		apiToken:   token,
 		evernoteNS: &mockAPI{createNote: func(k string, n *types.Note) (*types.Note, error) { saved = n; return nil, errExpected }},
 	}
 	err := ns.CreateNote(note)
@@ -122,10 +119,9 @@ func TestCreateNoteSDK(t *testing.T) {
 func TestDeleteNoteSDK(t *testing.T) {
 	assert := assert.New(t)
 	token := "token"
-	c := &mockClient{apiToken: token}
 	notebookGUID := "Some GUID"
 	ns := &Notestore{
-		client:     c,
+		apiToken:   token,
 		evernoteNS: &mockAPI{deleteNote: func(a string, g types.GUID) (int32, error) { return int32(0), nil }},
 	}
 
@@ -136,18 +132,17 @@ func TestDeleteNoteSDK(t *testing.T) {
 func TestUpdateNoteSDK(t *testing.T) {
 	assert := assert.New(t)
 	token := "token"
-	c := &mockClient{apiToken: token}
 	ns := &Notestore{
-		client: c,
+		apiToken: token,
 	}
 
 	t.Run("error when no GUID", func(t *testing.T) {
-		err := ns.UpdateNote(&Note{})
+		err := ns.UpdateNote(&clinote.Note{})
 		assert.Equal(ErrNoGUIDSet, err, "Wrong error returned")
 	})
 
 	t.Run("error when no title", func(t *testing.T) {
-		err := ns.UpdateNote(&Note{GUID: "some guid"})
+		err := ns.UpdateNote(&clinote.Note{GUID: "some guid"})
 		assert.Equal(ErrNoTitleSet, err, "Wrong error returned")
 	})
 
@@ -156,7 +151,7 @@ func TestUpdateNoteSDK(t *testing.T) {
 		expectedGUID := "Expected GUID"
 		expectedTitle := "Expected Title"
 		ns.evernoteNS = &mockAPI{updateNote: func(api string, n *types.Note) (*types.Note, error) { expectedNote = n; return nil, nil }}
-		err := ns.UpdateNote(&Note{
+		err := ns.UpdateNote(&clinote.Note{
 			Title: expectedTitle,
 			GUID:  expectedGUID,
 		})
@@ -172,7 +167,7 @@ func TestUpdateNoteSDK(t *testing.T) {
 		expectedTitle := "Expected Title"
 		expectedContent := "This is note content"
 		ns.evernoteNS = &mockAPI{updateNote: func(api string, n *types.Note) (*types.Note, error) { expectedNote = n; return nil, nil }}
-		err := ns.UpdateNote(&Note{
+		err := ns.UpdateNote(&clinote.Note{
 			Title: expectedTitle,
 			GUID:  expectedGUID,
 			Body:  expectedContent,
@@ -193,13 +188,12 @@ func TestFindNotes(t *testing.T) {
 	expectedNote.Title = &title
 	nl := &notestore.NoteList{Notes: []*types.Note{expectedNote}}
 	token := "token"
-	c := &mockClient{apiToken: token}
 	ns := &Notestore{
-		client:     c,
+		apiToken:   token,
 		evernoteNS: &mockAPI{findNote: func(string, *notestore.NoteFilter, int32, int32) (*notestore.NoteList, error) { return nl, nil }},
 	}
 	t.Run("all notebooks", func(t *testing.T) {
-		filter := &NoteFilter{Words: "search term"}
+		filter := &clinote.NoteFilter{Words: "search term"}
 		notes, err := ns.FindNotes(filter, 0, 20)
 		assert.NoError(err, "Should not return an error")
 		assert.Len(notes, 1, "Wrong number of notes returned.")
@@ -208,7 +202,7 @@ func TestFindNotes(t *testing.T) {
 	})
 
 	t.Run("one notebook", func(t *testing.T) {
-		filter := &NoteFilter{NotebookGUID: "Book GUID"}
+		filter := &clinote.NoteFilter{NotebookGUID: "Book GUID"}
 		notes, err := ns.FindNotes(filter, 0, 20)
 		assert.NoError(err, "Should not return an error")
 		assert.Len(notes, 1, "Wrong number of notes returned.")
@@ -217,7 +211,7 @@ func TestFindNotes(t *testing.T) {
 	})
 
 	t.Run("return error", func(t *testing.T) {
-		filter := &NoteFilter{NotebookGUID: "Book GUID"}
+		filter := &clinote.NoteFilter{NotebookGUID: "Book GUID"}
 		expectedErr := errors.New("expected")
 		ns.evernoteNS = &mockAPI{findNote: func(string, *notestore.NoteFilter, int32, int32) (*notestore.NoteList, error) {
 			return nil, expectedErr
@@ -232,9 +226,9 @@ func TestFindNotes(t *testing.T) {
 func TestGetNoteContentSDK(t *testing.T) {
 	assert := assert.New(t)
 	expectedContent := "Note content"
-	c := &mockClient{apiToken: "token"}
+	token := "token"
 	ns := &Notestore{
-		client:     c,
+		apiToken:   token,
 		evernoteNS: &mockAPI{getNoteContent: func(string, types.GUID) (string, error) { return expectedContent, nil }},
 	}
 	content, err := ns.GetNoteContent("GUID")

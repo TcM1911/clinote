@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"bufio"
@@ -28,7 +28,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/TcM1911/clinote/config"
+	"github.com/TcM1911/clinote"
 	"github.com/TcM1911/clinote/evernote"
 	"github.com/spf13/cobra"
 )
@@ -68,11 +68,16 @@ with the notebook flag.`,
 			return
 		}
 		client := defaultClient()
+		defer client.Close()
+		ns, err := client.GetNoteStore()
+		if err != nil {
+			return
+		}
 		if title != "" {
-			evernote.ChangeTitle(client, args[0], title)
+			clinote.ChangeTitle(client.Config.Store(), ns, args[0], title)
 		}
 		if notebook != "" {
-			evernote.MoveNote(client, args[0], notebook)
+			clinote.MoveNote(client.Config.Store(), ns, args[0], notebook)
 		}
 
 		if title == "" && notebook == "" {
@@ -93,7 +98,11 @@ func init() {
 }
 
 func editNote(client *evernote.Client, title string, raw bool) error {
-	n, err := evernote.GetNoteWithContent(client, title)
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return err
+	}
+	n, err := clinote.GetNoteWithContent(client.Config.Store(), ns, title)
 	if err != nil {
 		return err
 	}
@@ -110,26 +119,22 @@ func editNote(client *evernote.Client, title string, raw bool) error {
 	}
 	b, err := createTmpFileAndEdit(filename, n.Title, body)
 	if err != nil {
-		// fmt.Println("Error when processing note:", err)
 		return err
 	}
 	hash := md5.Sum(b)
 	if hash == n.MDHash {
-		// fmt.Println("No changes detected.")
 		return err
 	}
 	fmt.Println("Changes detected, saving note...")
 	err = parseFileChange(b, n, raw)
 	if err != nil {
-		// fmt.Println("Error parsing the changes:", err)
 		return err
 	}
-	return evernote.SaveChanges(client, n, raw)
+	return clinote.SaveChanges(ns, n, raw)
 }
 
 func createTmpFileAndEdit(filename, title, content string) ([]byte, error) {
-	//tempDir := os.TempDir()
-	cfg := new(config.DefaultConfig)
+	cfg := new(clinote.DefaultConfig)
 	tempDir := cfg.GetCacheFolder()
 	if tempDir == "" {
 		return nil, errors.New("no valid temp folder")
@@ -175,7 +180,7 @@ func createTempFile(fp string) *os.File {
 	return f
 }
 
-func parseFileChange(b []byte, n *evernote.Note, raw bool) error {
+func parseFileChange(b []byte, n *clinote.Note, raw bool) error {
 	r := bytes.NewReader(b)
 	br := bufio.NewReader(r)
 	// First line is the note title.

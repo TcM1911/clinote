@@ -2,12 +2,9 @@ package evernote
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
-	"sync"
 
-	"github.com/TcM1911/clinote/config"
+	"github.com/TcM1911/clinote"
 	ec "github.com/TcM1911/evernote-sdk-golang/client"
 	"github.com/TcM1911/evernote-sdk-golang/notestore"
 	"github.com/mrjones/oauth"
@@ -15,32 +12,22 @@ import (
 
 var apiConsumer = "clinote"
 var apiSecret = "e9a3234ceefed62b"
-var setup sync.Once
 var devBuild = false
-
-// APIClient is the interface for the api client.
-type APIClient interface {
-	// GetNoteStore returns the note store for the user.
-	GetNoteStore() (NotestoreClient, error)
-	// GetAuthorizedToken gets the authorized token from the server.
-	GetAuthorizedToken(tmpToken *oauth.RequestToken, verifier string) (token string, err error)
-	// GetRequestToken requests a request token from the server.
-	GetRequestToken(callbackURL string) (token *oauth.RequestToken, url string, err error)
-	// GetConfig returns the client's configuration.
-	GetConfig() config.Configuration
-	// GetAPIToken returns the user's token.
-	GetAPIToken() string
-}
 
 // Client is an implementation of the client interface for Evernote.
 type Client struct {
 	// Config holds all the configurations.
-	Config config.Configuration
+	Config clinote.Configuration
 	// APIToken is the access token for the user's account.
 	apiToken   string
-	ns         NotestoreClient
+	ns         clinote.NotestoreClient
 	evernote   *ec.EvernoteClient
 	evernoteNS *notestore.NoteStoreClient
+}
+
+// Close shuts down the client.
+func (c *Client) Close() error {
+	return c.Config.Close()
 }
 
 // GetAPIToken is the access token for the user's account.
@@ -49,12 +36,12 @@ func (c Client) GetAPIToken() string {
 }
 
 // GetConfig returns the configuration.
-func (c *Client) GetConfig() config.Configuration {
+func (c *Client) GetConfig() clinote.Configuration {
 	return c.Config
 }
 
 // GetNoteStore returns a notestore client for the user.
-func (c *Client) GetNoteStore() (NotestoreClient, error) {
+func (c *Client) GetNoteStore() (clinote.NotestoreClient, error) {
 	if c.ns != nil {
 		return c.ns, nil
 	}
@@ -66,7 +53,7 @@ func (c *Client) GetNoteStore() (NotestoreClient, error) {
 		return nil, err
 	}
 	c.evernoteNS = ns
-	store := &Notestore{client: c, evernoteNS: ns}
+	store := &Notestore{apiToken: c.apiToken, evernoteNS: ns}
 	c.ns = store
 	return store, nil
 }
@@ -86,37 +73,29 @@ func (c *Client) GetRequestToken(callback string) (*oauth.RequestToken, string, 
 }
 
 // NewClient creates a new Evernote client.
-func NewClient(cfg config.Configuration) *Client {
+func NewClient(cfg clinote.Configuration) *Client {
 	client := new(Client)
 	client.Config = cfg
-	setup.Do(func() {
-		env := ec.PRODUCTION
-		if devBuild {
-			fmt.Println("Dev build")
-			env = ec.SANDBOX
-		}
-		client.evernote = ec.NewClient(apiConsumer, apiSecret, env)
-		devToken := os.Getenv("EVERNOTE_DEV_TOKEN")
-		if devToken != "" {
-			fmt.Println("Using dev token")
-			client.apiToken = devToken
-		} else {
-			cacheDir := cfg.GetCacheFolder()
-			fp := filepath.Join(cacheDir, "session")
-			if _, err := os.Stat(fp); os.IsNotExist(err) {
-				return
-			}
-			f, err := os.OpenFile(fp, os.O_RDONLY, 0600)
+	env := ec.PRODUCTION
+	if devBuild {
+		fmt.Println("Dev build")
+		env = ec.SANDBOX
+	}
+	client.evernote = ec.NewClient(apiConsumer, apiSecret, env)
+	devToken := os.Getenv("EVERNOTE_DEV_TOKEN")
+	if devToken != "" {
+		fmt.Println("Using dev token")
+		client.apiToken = devToken
+	} else {
+		key := migrateOldSession(cfg)
+		if key == "" {
+			settings, err := cfg.Store().GetSettings()
 			if err != nil {
 				panic(err.Error())
 			}
-			defer f.Close()
-			b, err := ioutil.ReadAll(f)
-			if err != nil {
-				panic(err.Error())
-			}
-			client.apiToken = string(b)
+			key = settings.APIKey
 		}
-	})
+		client.apiToken = key
+	}
 	return client
 }

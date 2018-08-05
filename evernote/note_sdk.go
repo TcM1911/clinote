@@ -21,6 +21,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/TcM1911/clinote"
 	"github.com/TcM1911/evernote-sdk-golang/types"
 )
 
@@ -35,31 +36,11 @@ func init() {
 	cache = make(map[types.GUID]*types.Note)
 }
 
-/*func createNoteType(n *Note) (*types.Note, error) {
-	noteMu.Lock()
-	note, ok := cache[types.GUID(n.GUID)]
-	if !ok {
-		// No cached note, so we can't update.
-		return nil, ErrNoCachedNote
-	}
-	// Remove cached note.
-	delete(cache, note.GetGUID())
-	noteMu.Unlock()
-	note.Title = &n.Title
-
-	notebookGUID := string(n.Notebook.GUID)
-	note.NotebookGuid = &notebookGUID
-
-	now := types.Timestamp(time.Now().Unix() * 1000)
-	note.Updated = &now
-	return note, nil
-}*/
-
-func convert(note *types.Note) *Note {
-	n := new(Note)
+func convert(note *types.Note) *clinote.Note {
+	n := new(clinote.Note)
 	n.Title = note.GetTitle()
 	n.GUID = string(note.GetGUID())
-	notebook := new(Notebook)
+	notebook := new(clinote.Notebook)
 	notebookGUID := note.GetNotebookGuid()
 	n.Notebook = notebook
 	n.Notebook.GUID = notebookGUID
@@ -68,8 +49,8 @@ func convert(note *types.Note) *Note {
 	return n
 }
 
-func convertNotes(notes []*types.Note) []*Note {
-	a := make([]*Note, len(notes))
+func convertNotes(notes []*types.Note) []*clinote.Note {
+	a := make([]*clinote.Note, len(notes))
 	for i, n := range notes {
 		// Cache notes for later.
 		noteMu.Lock()

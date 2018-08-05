@@ -15,14 +15,13 @@
  * Copyright (C) Joakim Kennedy, 2016
  */
 
-package cmd
+package main
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/TcM1911/clinote/evernote"
-
+	"github.com/TcM1911/clinote"
 	"github.com/spf13/cobra"
 )
 
@@ -47,7 +46,7 @@ func createNotebook(cmd *cobra.Command, args []string) {
 		fmt.Println("No notebook name given")
 		os.Exit(1)
 	}
-	nb := &evernote.Notebook{}
+	nb := &clinote.Notebook{}
 	nb.Name = args[0]
 
 	stack, err := cmd.Flags().GetString("stack")
@@ -64,12 +63,15 @@ func createNotebook(cmd *cobra.Command, args []string) {
 		fmt.Println("Error when parsing default value:", err)
 		os.Exit(1)
 	}
-	// nb.DefaultNotebook = d
 
-	// ns := evernote.GetNoteStore()
 	client := defaultClient()
+	defer client.Close()
 
-	err = evernote.CreateNotebook(client, nb, d)
+	ns, err := client.GetNoteStore()
+	if err != nil {
+		return
+	}
+	err = clinote.CreateNotebook(ns, nb, d)
 	if err != nil {
 		fmt.Println("Error when creating the notebook:", err)
 		os.Exit(1)
