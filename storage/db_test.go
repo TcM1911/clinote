@@ -76,6 +76,29 @@ func TestNotebookCaching(t *testing.T) {
 	})
 }
 
+func TestSearchCaching(t *testing.T) {
+	assert := assert.New(t)
+	db, tmpDir := setupTestDB(t)
+	defer os.RemoveAll(tmpDir)
+	defer db.Close()
+	expected := []*clinote.Note{
+		&clinote.Note{Title: "Note 1"},
+		&clinote.Note{Title: "Note 2"},
+		&clinote.Note{Title: "Note 3"},
+	}
+
+	t.Run("Store", func(t *testing.T) {
+		err := db.SaveSearch(expected)
+		assert.NoError(err, "Should not fail when storing notebook cache")
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		actual, err := db.GetSearch()
+		assert.NoError(err, "Should not return an error")
+		assert.Equal(expected, actual, "Wrong data returned from store")
+	})
+}
+
 func compareCacheList(assert *assert.Assertions, expected *clinote.NotebookCacheList, actual *clinote.NotebookCacheList) {
 	assert.Equal(expected.Limit, actual.Limit)
 	assert.Equal(expected.Notebooks, actual.Notebooks)

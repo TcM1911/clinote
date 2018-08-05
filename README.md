@@ -16,7 +16,7 @@ CLInote allows you to:
 
 From source:
 ```
-go get -v github.com/TcM1911/clinote
+go get -v github.com/TcM1911/clinote/cmd
 ```
 
 ## Authorize to Evernote via OAuth
@@ -78,6 +78,22 @@ returned.
 
 If no search term is given, a wild card search will be used.
 The notes will be sorted by the modified time.
+
+### View/edit/remove notes returned in the search list
+
+You can view, edit, or remove notes returned by the list command
+using the note's index number. For example to show the content
+of the first note in the list, use the following command:
+
+```
+clinote note 1
+```
+
+To remove the 5th note in the list, use:
+
+```
+clinote note delete 5
+```
 
 ## Create a new notebook
 

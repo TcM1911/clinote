@@ -28,6 +28,10 @@ type Storager interface {
 	GetNotebookCache() (*NotebookCacheList, error)
 	// StoreNotebookList saves the list to the database.
 	StoreNotebookList(list *NotebookCacheList) error
+	// SaveSearch stores a note search to the database.
+	SaveSearch([]*Note) error
+	// GetSearch returns a saved note search from the database.
+	GetSearch() ([]*Note, error)
 }
 
 // Settings is a struct holding the user's settings for the application.

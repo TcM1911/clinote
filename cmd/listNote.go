@@ -99,6 +99,10 @@ func findNotes(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	err = client.Config.Store().SaveSearch(list)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	outputStr := []byte("Search request:.\n")
 	outputStr = append(outputStr, []byte(fmt.Sprintf("Found %d items\n", len(list)))...)

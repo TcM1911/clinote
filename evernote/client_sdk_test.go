@@ -97,6 +97,14 @@ type mockStore struct {
 	settings *clinote.Settings
 }
 
+func (m *mockStore) SaveSearch([]*clinote.Note) error {
+	panic("not implemented")
+}
+
+func (m *mockStore) GetSearch() ([]*clinote.Note, error) {
+	panic("not implemented")
+}
+
 func (m *mockStore) GetNotebookCache() (*clinote.NotebookCacheList, error) {
 	panic("not implemented")
 }

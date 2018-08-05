@@ -36,6 +36,7 @@ var (
 var (
 	settingsKey      = []byte("user_settings")
 	notebookCacheKey = []byte("notebook_cache")
+	searchCacheKey   = []byte("note_search_cache")
 )
 
 var (
@@ -125,6 +126,25 @@ func (d *Database) StoreNotebookList(list *clinote.NotebookCacheList) error {
 		return err
 	}
 	return d.storeData(cacheBucket, notebookCacheKey, data)
+}
+
+// SaveSearch stores the search to the database.
+func (d *Database) SaveSearch(notes []*clinote.Note) error {
+	data, err := json.Marshal(notes)
+	if err != nil {
+		return err
+	}
+	return d.storeData(cacheBucket, searchCacheKey, data)
+}
+
+// GetSearch gets the saved search from the database.
+func (d *Database) GetSearch() ([]*clinote.Note, error) {
+	var notes []*clinote.Note
+	data, err := d.getData(cacheBucket, searchCacheKey)
+	if err == nil && data != nil {
+		err = json.Unmarshal(data, &notes)
+	}
+	return notes, err
 }
 
 // Close shuts down the connection to the database.

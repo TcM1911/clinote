@@ -22,6 +22,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/TcM1911/clinote/markdown"
@@ -91,6 +92,19 @@ func FindNotes(ns NotestoreClient, filter *NoteFilter, offset int, count int) ([
 // If the notebook is an empty string, the first matching note will
 // be returned.
 func GetNote(db Storager, ns NotestoreClient, title, notebook string) (*Note, error) {
+	// Check if the title is a number. If it is
+	// assume that the user wants to get the note
+	// from a saved search.
+	index, err := strconv.Atoi(title)
+	if err == nil && index > 0 {
+		// Get note from saved search
+		notes, err := db.GetSearch()
+		if err != nil {
+			return nil, err
+		}
+		return notes[index-1], nil
+	}
+
 	filter := new(NoteFilter)
 	if notebook != "" {
 		nb, err := findNotebook(db, ns, notebook)

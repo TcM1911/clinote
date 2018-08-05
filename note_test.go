@@ -38,6 +38,16 @@ func TestGetNote(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal(expectedNote, note)
 	})
+	t.Run("get note from search", func(t *testing.T) {
+		expectedNote := new(Note)
+		store.getSearch = func() ([]*Note, error) {
+			return []*Note{new(Note), expectedNote, new(Note)}, nil
+		}
+		ns := nsWithNote(expectedNote)
+		note, err := GetNote(store, ns, "2", "")
+		assert.NoError(err)
+		assert.Equal(expectedNote, note)
+	})
 	t.Run("return error from FindNotes", func(t *testing.T) {
 		expectedError := errors.New("Expected error")
 		ns := new(mockNS)
@@ -387,6 +397,15 @@ func (s *mockNS) GetNotebook(guid string) (*Notebook, error) {
 type mockStore struct {
 	getNotebookCache  func() (*NotebookCacheList, error)
 	storeNotebookList func(list *NotebookCacheList) error
+	getSearch         func() ([]*Note, error)
+}
+
+func (m *mockStore) SaveSearch([]*Note) error {
+	panic("not implemented")
+}
+
+func (m *mockStore) GetSearch() ([]*Note, error) {
+	return m.getSearch()
 }
 
 func (m *mockStore) Close() error {
