@@ -102,7 +102,9 @@ func GetNote(db Storager, ns NotestoreClient, title, notebook string) (*Note, er
 		if err != nil {
 			return nil, err
 		}
-		return notes[index-1], nil
+		if index <= len(notes) {
+			return notes[index-1], nil
+		}
 	}
 
 	filter := new(NoteFilter)

@@ -48,6 +48,17 @@ func TestGetNote(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal(expectedNote, note)
 	})
+	t.Run("handle cache note index overflow", func(t *testing.T) {
+		store.getSearch = func() ([]*Note, error) {
+			return []*Note{new(Note), new(Note), new(Note)}, nil
+		}
+		notes := []*Note{new(Note), new(Note)}
+		ns := new(mockNS)
+		ns.findNotes = func(filter *NoteFilter, o, max int) ([]*Note, error) { return notes, nil }
+		_, err := GetNote(store, ns, "4", "")
+		assert.Error(err)
+		assert.EqualError(err, ErrNoNoteFound.Error())
+	})
 	t.Run("return error from FindNotes", func(t *testing.T) {
 		expectedError := errors.New("Expected error")
 		ns := new(mockNS)
