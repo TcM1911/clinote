@@ -91,6 +91,7 @@ func (s *Notestore) UpdateNote(note *clinote.Note) error {
 	if note.Body != "" {
 		n.Content = &note.Body
 	}
+	n.NotebookGuid = &note.Notebook.GUID
 	_, err := s.evernoteNS.UpdateNote(s.apiToken, n)
 	return err
 }
