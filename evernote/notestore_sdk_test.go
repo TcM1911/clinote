@@ -152,8 +152,9 @@ func TestUpdateNoteSDK(t *testing.T) {
 		expectedTitle := "Expected Title"
 		ns.evernoteNS = &mockAPI{updateNote: func(api string, n *types.Note) (*types.Note, error) { expectedNote = n; return nil, nil }}
 		err := ns.UpdateNote(&clinote.Note{
-			Title: expectedTitle,
-			GUID:  expectedGUID,
+			Title:    expectedTitle,
+			GUID:     expectedGUID,
+			Notebook: new(clinote.Notebook),
 		})
 		assert.NoError(err, "No error should be returned")
 		assert.Equal(expectedGUID, string(expectedNote.GetGUID()), "Wrong GUID")
@@ -168,9 +169,10 @@ func TestUpdateNoteSDK(t *testing.T) {
 		expectedContent := "This is note content"
 		ns.evernoteNS = &mockAPI{updateNote: func(api string, n *types.Note) (*types.Note, error) { expectedNote = n; return nil, nil }}
 		err := ns.UpdateNote(&clinote.Note{
-			Title: expectedTitle,
-			GUID:  expectedGUID,
-			Body:  expectedContent,
+			Title:    expectedTitle,
+			GUID:     expectedGUID,
+			Body:     expectedContent,
+			Notebook: new(clinote.Notebook),
 		})
 		assert.NoError(err, "No error should be returned")
 		assert.Equal(expectedGUID, string(expectedNote.GetGUID()), "Wrong GUID")
