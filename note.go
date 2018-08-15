@@ -18,10 +18,13 @@
 package clinote
 
 import (
+	"bufio"
 	"bytes"
+	"crypto/md5"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"strconv"
 	"strings"
 
@@ -49,6 +52,16 @@ var (
 var (
 	// ErrNoNoteFound is returned if search resulted in no notes found.
 	ErrNoNoteFound = errors.New("no note found")
+)
+
+// NoteOption are used for options around notes.
+type NoteOption int32
+
+const (
+	// DefaultNoteOption will display or edit the note with default options.
+	DefaultNoteOption NoteOption = 0
+	// RawNote option will display or edit the note in it's raw format.
+	RawNote = 1 << iota
 )
 
 // Note is the structure of an Evernote note.
@@ -152,9 +165,8 @@ func GetNoteWithContent(db Storager, ns NotestoreClient, title string) (*Note, e
 }
 
 // SaveChanges updates the changes to the note on the server.
-func SaveChanges(ns NotestoreClient, n *Note, useRawContent bool) error {
-	// useRawContent := GetUseRawContentFromContext(ctx)
-	return saveChanges(ns, n, true, useRawContent)
+func SaveChanges(ns NotestoreClient, n *Note, opts NoteOption) error {
+	return saveChanges(ns, n, true, opts&RawNote != 0)
 }
 
 // ChangeTitle changes the note's title.
@@ -222,6 +234,81 @@ func SaveNewNote(ns NotestoreClient, n *Note, raw bool) error {
 	n.Body = body
 	if err := ns.CreateNote(n); err != nil {
 		return err
+	}
+	return nil
+}
+
+// EditNote opens the editor so the user can edit the note. Once the user closes the
+// editor, the note is saved to the notestore.
+func EditNote(client *Client, title string, opts NoteOption) error {
+	db, ns := client.Store, client.NoteStore
+	note, err := GetNoteWithContent(db, ns, title)
+	if err != nil {
+		return err
+	}
+	var body string
+	if opts&RawNote != 0 {
+		note.MDHash = md5.Sum([]byte(note.Title + "\n\n" + note.Body))
+		body = note.Body
+	} else {
+		note.MDHash = md5.Sum([]byte(note.Title + "\n\n" + note.MD))
+		body = note.MD
+	}
+	filename := note.GUID + ".md"
+	cacheFile, err := client.NewCacheFile(filename)
+	if err != nil {
+		return err
+	}
+	_, err = cacheFile.Write([]byte(title + "\n\n" + body))
+	if err != nil {
+		return err
+	}
+	// XXX: We need to close the file handler to the file
+	// before it is handed over to the editor. Otherwise,
+	// Go doesn't detect the changes.
+	err = cacheFile.Close()
+	if err != nil {
+		return err
+	}
+	err = client.Edit(cacheFile)
+	if err != nil {
+		return err
+	}
+	err = cacheFile.ReOpen()
+	if err != nil {
+		return err
+	}
+	data, err := ioutil.ReadAll(cacheFile)
+	if err != nil {
+		return err
+	}
+	defer cacheFile.CloseAndRemove()
+	hash := md5.Sum(data)
+	if hash == note.MDHash {
+		return nil
+	}
+	err = parseNote(data, note, opts)
+	if err != nil {
+		return err
+	}
+	return SaveChanges(ns, note, opts)
+}
+
+func parseNote(b []byte, n *Note, opts NoteOption) error {
+	r := bufio.NewReader(bytes.NewReader(b))
+	line, _, err := r.ReadLine()
+	if err != nil {
+		return err
+	}
+	n.Title = string(line)
+	content, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	if opts&RawNote != 0 {
+		n.Body = string(content)
+	} else {
+		n.MD = string(content)
 	}
 	return nil
 }

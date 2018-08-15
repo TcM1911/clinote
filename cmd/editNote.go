@@ -20,7 +20,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"crypto/md5"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -29,7 +28,6 @@ import (
 	"path/filepath"
 
 	"github.com/TcM1911/clinote"
-	"github.com/TcM1911/clinote/evernote"
 	"github.com/spf13/cobra"
 )
 
@@ -81,7 +79,17 @@ with the notebook flag.`,
 		}
 
 		if title == "" && notebook == "" {
-			err := editNote(client, args[0], raw)
+			var opts clinote.NoteOption
+			if raw {
+				opts = opts & clinote.RawNote
+			}
+			c := &clinote.Client{
+				Config:    client.Config,
+				Editor:    new(clinote.VimEditor),
+				NoteStore: ns,
+				Store:     client.Config.Store(),
+			}
+			err := clinote.EditNote(c, args[0], opts)
 			if err != nil {
 				fmt.Println("Error when editing the note:", err)
 				os.Exit(1)
@@ -97,41 +105,41 @@ func init() {
 	editNoteCmd.Flags().Bool("raw", false, "Use raw content instead of markdown version.")
 }
 
-func editNote(client *evernote.Client, title string, raw bool) error {
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return err
-	}
-	n, err := clinote.GetNoteWithContent(client.Config.Store(), ns, title)
-	if err != nil {
-		return err
-	}
-	n.MDHash = md5.Sum([]byte(n.Title + "\n\n" + n.MD))
-	if raw {
-		n.MDHash = md5.Sum([]byte(n.Title + "\n\n" + n.Body))
-	}
-	filename := string(n.GUID) + ".md"
-	var body string
-	if raw {
-		body = n.Body
-	} else {
-		body = n.MD
-	}
-	b, err := createTmpFileAndEdit(filename, n.Title, body)
-	if err != nil {
-		return err
-	}
-	hash := md5.Sum(b)
-	if hash == n.MDHash {
-		return err
-	}
-	fmt.Println("Changes detected, saving note...")
-	err = parseFileChange(b, n, raw)
-	if err != nil {
-		return err
-	}
-	return clinote.SaveChanges(ns, n, raw)
-}
+// func editNote(client *evernote.Client, title string, raw bool) error {
+// 	ns, err := client.GetNoteStore()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	n, err := clinote.GetNoteWithContent(client.Config.Store(), ns, title)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	n.MDHash = md5.Sum([]byte(n.Title + "\n\n" + n.MD))
+// 	if raw {
+// 		n.MDHash = md5.Sum([]byte(n.Title + "\n\n" + n.Body))
+// 	}
+// 	filename := string(n.GUID) + ".md"
+// 	var body string
+// 	if raw {
+// 		body = n.Body
+// 	} else {
+// 		body = n.MD
+// 	}
+// 	b, err := createTmpFileAndEdit(filename, n.Title, body)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	hash := md5.Sum(b)
+// 	if hash == n.MDHash {
+// 		return err
+// 	}
+// 	fmt.Println("Changes detected, saving note...")
+// 	err = parseFileChange(b, n, raw)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return clinote.SaveChanges(ns, n, raw)
+// }
 
 func createTmpFileAndEdit(filename, title, content string) ([]byte, error) {
 	cfg := new(clinote.DefaultConfig)

@@ -17,10 +17,45 @@
 
 package clinote
 
-// APIClient is the interface for the api client.
-type APIClient interface {
-	// GetNoteStore returns the note store for the user.
-	GetNoteStore() (NotestoreClient, error)
-	// GetConfig returns the client's configuration.
-	GetConfig() Configuration
+import (
+	"os"
+	"path/filepath"
+)
+
+func NewClient(config Configuration, store Storager, opts ClientOption) *Client {
+	c := &Client{
+		Config: config,
+		Store:  store,
+	}
+	return c
+}
+
+type ClientOption int32
+
+const (
+	DefaultClientOptions ClientOption = 0
+	EvernoteSandbox                   = 1 << iota
+	MemoryBasedCacheFile
+)
+
+type Client struct {
+	Config       Configuration
+	Store        Storager
+	NoteStore    NotestoreClient
+	Editor       Editer
+	newCacheFile func(filename string) (CacheFile, error)
+}
+
+func (c *Client) NewCacheFile(filename string) (CacheFile, error) {
+	fp := filepath.Join(c.Config.GetCacheFolder(), filename)
+	f, err := os.OpenFile(fp, os.O_CREATE|os.O_RDWR, 0600)
+	if err != nil {
+		return nil, err
+	}
+	cachefile := &FileCacheFile{file: f, fp: fp}
+	return cachefile, nil
+}
+
+func (c *Client) Edit(file CacheFile) error {
+	return c.Editor.Edit(file)
 }

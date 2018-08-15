@@ -148,17 +148,18 @@ func TestSaveChanges(t *testing.T) {
 	body := "This is the note content"
 	expectedMDContent := XMLHeader + "<en-note><p>" + body + "</p>\n</en-note>"
 	expectedRawContent := XMLHeader + "<en-note><p>" + body + "</p></en-note>"
+	var opts NoteOption
 	t.Run("return error from UpdateNote", func(t *testing.T) {
 		ns := new(mockNS)
 		ns.updateNote = func(n *Note) error { return expectedError }
-		err := SaveChanges(ns, &Note{}, false)
+		err := SaveChanges(ns, &Note{}, opts)
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedError, err, "Wrong error returned")
 	})
 	t.Run("UpdateNote without content change", func(t *testing.T) {
 		ns := new(mockNS)
 		ns.updateNote = func(n *Note) error { return nil }
-		err := SaveChanges(ns, &Note{}, false)
+		err := SaveChanges(ns, &Note{}, opts)
 		assert.NoError(err, "Should not return an error")
 	})
 	t.Run("UpdateNote with MD content", func(t *testing.T) {
@@ -166,7 +167,7 @@ func TestSaveChanges(t *testing.T) {
 		note := new(Note)
 		note.MD = body
 		ns.updateNote = func(n *Note) error { return nil }
-		err := SaveChanges(ns, note, false)
+		err := SaveChanges(ns, note, opts)
 		assert.NoError(err, "Should not return an error")
 		assert.Equal(expectedMDContent, note.Body, "Note content doesn't match")
 	})
@@ -176,7 +177,7 @@ func TestSaveChanges(t *testing.T) {
 		note.MD = body
 		note.Body = "<p>" + body + "</p>"
 		ns.updateNote = func(n *Note) error { return nil }
-		err := SaveChanges(ns, note, true)
+		err := SaveChanges(ns, note, RawNote)
 		assert.NoError(err, "Should not return an error")
 		assert.Equal(expectedRawContent, note.Body, "Note content doesn't match")
 	})
