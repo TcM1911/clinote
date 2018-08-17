@@ -79,9 +79,9 @@ with the notebook flag.`,
 		}
 
 		if title == "" && notebook == "" {
-			var opts clinote.NoteOption
+			opts := clinote.DefaultNoteOption
 			if raw {
-				opts = opts & clinote.RawNote
+				opts = opts | clinote.RawNote
 			}
 			c := &clinote.Client{
 				Config:    client.Config,
