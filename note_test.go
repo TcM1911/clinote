@@ -18,6 +18,7 @@
 package clinote
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -348,94 +349,214 @@ func TestSaveNewNote(t *testing.T) {
 	})
 }
 
+func TestEditNote(t *testing.T) {
+	assert := assert.New(t)
+
+	// Setup test fixtures.
+	var setupClient = func(addToNote string) (*Client, *mockNS, *[]byte, *Note, string) {
+		// Setup store
+		store := new(mockStore)
+
+		// Setup notestore
+		noteTitle := "Note Title"
+		originalContent := "Body content"
+		expectedNote := &Note{Title: noteTitle, Body: "<en-note><p>" + originalContent + "</p></en-note>"}
+		ns := nsWithNote(expectedNote)
+		ns.getNoteContent = func(guid string) (string, error) { return expectedNote.Body, nil }
+
+		// Setup editer
+		var writtenData []byte
+		editor := &mockEditor{
+			edit: func(file CacheFile) error {
+				cache, ok := file.(*mockCacheFile)
+				if !ok {
+					t.Fatalf("Wrong CacheFile type\n")
+				}
+				data := cache.buffer.Bytes()
+				d := make([]byte, len(data))
+				copy(d, data)
+				writtenData = d
+				if addToNote != "" {
+					_, err := cache.buffer.WriteString("\n\n" + addToNote + "\n")
+					return err
+				}
+				return nil
+			},
+		}
+
+		// Setup client
+		c := &Client{
+			Store:     store,
+			Config:    new(DefaultConfig),
+			NoteStore: ns,
+			Editor:    editor,
+		}
+		c.newCacheFile = func(c *Client, filename string) (CacheFile, error) {
+			buf := new(bytes.Buffer)
+			return &mockCacheFile{buffer: buf}, nil
+		}
+		return c, ns, &writtenData, expectedNote, originalContent
+	}
+
+	// No edit
+	t.Run("no_change_md", func(t *testing.T) {
+		c, ns, writtenData, expectedNote, originalContent := setupClient("")
+		saveNoteCalled := false
+		ns.updateNote = func(*Note) error {
+			saveNoteCalled = true
+			return nil
+		}
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption)
+		assert.NoError(err, "Should not return an error")
+		assert.NotNil(writtenData, "Should record the data")
+		assert.Contains(string(*writtenData), expectedNote.Title, "Should write title to file")
+		assert.Contains(string(*writtenData), originalContent, "Should write content to file")
+		assert.NotContains(string(*writtenData), "<p>", "Should not include HTML")
+		assert.False(saveNoteCalled, "Should not call SaveNote")
+	})
+
+	t.Run("no_change_raw", func(t *testing.T) {
+		c, ns, writtenData, expectedNote, originalContent := setupClient("")
+		saveNoteCalled := false
+		ns.updateNote = func(*Note) error {
+			saveNoteCalled = true
+			return nil
+		}
+		err := EditNote(c, expectedNote.Title, RawNote)
+		assert.NoError(err, "Should not return an error")
+		assert.NotNil(writtenData, "Should record the data")
+		assert.Contains(string(*writtenData), expectedNote.Title, "Should write title to file")
+		assert.Contains(string(*writtenData), originalContent, "Should write content to file")
+		assert.Contains(string(*writtenData), "<p>", "Should include HTML")
+		assert.False(saveNoteCalled, "Should not call SaveNote")
+	})
+
+	// Detect edit
+	t.Run("change_md", func(t *testing.T) {
+		addedToNote := "New content added"
+		c, ns, writtenData, expectedNote, originalContent := setupClient(addedToNote)
+		saveNoteCalled := false
+		var savedNote *Note
+		ns.updateNote = func(n *Note) error {
+			saveNoteCalled = true
+			savedNote = n
+			return nil
+		}
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption)
+		assert.NoError(err, "Should not return an error")
+		assert.NotNil(writtenData, "Should record the data")
+		assert.Contains(string(*writtenData), expectedNote.Title, "Should write title to file")
+		assert.Contains(string(*writtenData), originalContent, "Should write content to file")
+		assert.NotContains(string(*writtenData), "<p>", "Should not include HTML")
+		assert.True(saveNoteCalled, "Should not call SaveNote")
+		assert.NotNil(savedNote, "Saved note should not be nil")
+		assert.Contains(savedNote.Body, addedToNote, "Saved note should include added data")
+	})
+
+	t.Run("change_raw", func(t *testing.T) {
+		addedToNote := "<p>New content added</p>"
+		c, ns, writtenData, expectedNote, originalContent := setupClient(addedToNote)
+		saveNoteCalled := false
+		var savedNote *Note
+		ns.updateNote = func(n *Note) error {
+			saveNoteCalled = true
+			savedNote = n
+			return nil
+		}
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption|RawNote)
+		assert.NoError(err, "Should not return an error")
+		assert.NotNil(writtenData, "Should record the data")
+		assert.Contains(string(*writtenData), expectedNote.Title, "Should write title to file")
+		assert.Contains(string(*writtenData), originalContent, "Should write content to file")
+		assert.Contains(string(*writtenData), "<p>", "Should include HTML")
+		assert.True(saveNoteCalled, "Should not call SaveNote")
+		assert.NotNil(savedNote, "Saved note should not be nil")
+		assert.Contains(savedNote.Body, addedToNote, "Saved note should include added data")
+	})
+
+	// Error tests
+	expectedError := errors.New("test error")
+
+	t.Run("error_from_ns", func(t *testing.T) {
+		c, ns, _, expectedNote, _ := setupClient("")
+		ns.getNoteContent = func(string) (string, error) { return "", expectedError }
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption|RawNote)
+		assert.Error(err, "Should return an error")
+		assert.Equal(expectedError, err, "Wrong error returned")
+	})
+
+	t.Run("error_from_new_cachefile", func(t *testing.T) {
+		c, _, _, expectedNote, _ := setupClient("")
+		c.newCacheFile = func(*Client, string) (CacheFile, error) { return nil, expectedError }
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption|RawNote)
+		assert.Error(err, "Should return an error")
+		assert.Equal(expectedError, err, "Wrong error returned")
+	})
+
+	t.Run("error_from_cachefile_write", func(t *testing.T) {
+		c, _, _, expectedNote, _ := setupClient("")
+		cache := &mockCacheFile{
+			write: func([]byte) (int, error) { return 0, expectedError },
+		}
+		c.newCacheFile = func(*Client, string) (CacheFile, error) { return cache, nil }
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption|RawNote)
+		assert.Error(err, "Should return an error")
+		assert.Equal(expectedError, err, "Wrong error returned")
+	})
+
+	t.Run("error_from_cachefile_read", func(t *testing.T) {
+		c, _, _, expectedNote, _ := setupClient("")
+		cache := &mockCacheFile{
+			read:   func([]byte) (int, error) { return 0, expectedError },
+			buffer: new(bytes.Buffer),
+		}
+		c.newCacheFile = func(*Client, string) (CacheFile, error) { return cache, nil }
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption|RawNote)
+		assert.Error(err, "Should return an error")
+		assert.Equal(expectedError, err, "Wrong error returned")
+	})
+
+	t.Run("error_from_cachefile_close", func(t *testing.T) {
+		addedToNote := "<p>New content added</p>"
+		c, _, _, expectedNote, _ := setupClient(addedToNote)
+		cache := &mockCacheFile{
+			close:  func() error { return expectedError },
+			buffer: new(bytes.Buffer),
+		}
+		c.newCacheFile = func(*Client, string) (CacheFile, error) { return cache, nil }
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption|RawNote)
+		assert.Error(err, "Should return an error")
+		assert.Equal(expectedError, err, "Wrong error returned")
+	})
+
+	t.Run("error_from_cachefile_reopen", func(t *testing.T) {
+		addedToNote := "<p>New content added</p>"
+		c, _, _, expectedNote, _ := setupClient(addedToNote)
+		cache := &mockCacheFile{
+			reopen: func() error { return expectedError },
+			buffer: new(bytes.Buffer),
+		}
+		c.newCacheFile = func(*Client, string) (CacheFile, error) { return cache, nil }
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption|RawNote)
+		assert.Error(err, "Should return an error")
+		assert.Equal(expectedError, err, "Wrong error returned")
+	})
+
+	t.Run("error_from_cachefile_edit", func(t *testing.T) {
+		addedToNote := "<p>New content added</p>"
+		c, _, _, expectedNote, _ := setupClient(addedToNote)
+		c.Editor = &mockEditor{
+			edit: func(file CacheFile) error { return expectedError },
+		}
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption|RawNote)
+		assert.Error(err, "Should return an error")
+		assert.Equal(expectedError, err, "Wrong error returned")
+	})
+}
+
 func nsWithNote(note *Note) *mockNS {
 	notes := []*Note{&Note{Title: "Other note"}, note}
 	ns := new(mockNS)
 	ns.findNotes = func(filter *NoteFilter, o, max int) ([]*Note, error) { return notes, nil }
 	return ns
-}
-
-type mockNS struct {
-	findNotes       func(*NoteFilter, int, int) ([]*Note, error)
-	getAllNotebooks func() ([]*Notebook, error)
-	getNoteContent  func(guid string) (string, error)
-	updateNote      func(n *Note) error
-	deleteNote      func(guid string) error
-	saveNewNote     func(n *Note) error
-	createNote      func(n *Note) error
-	updateNotebook  func(b *Notebook) error
-}
-
-func (s *mockNS) UpdateNotebook(b *Notebook) error {
-	return s.updateNotebook(b)
-}
-
-func (s *mockNS) CreateNote(n *Note) error {
-	return s.createNote(n)
-}
-
-func (s *mockNS) SaveNewNote(n *Note) error {
-	return s.saveNewNote(n)
-}
-
-func (s *mockNS) DeleteNote(guid string) error {
-	return s.deleteNote(guid)
-}
-
-func (s *mockNS) UpdateNote(n *Note) error {
-	return s.updateNote(n)
-}
-
-func (s *mockNS) GetNoteContent(guid string) (string, error) {
-	return s.getNoteContent(guid)
-}
-
-func (s *mockNS) FindNotes(filter *NoteFilter, offset int, count int) ([]*Note, error) {
-	return s.findNotes(filter, offset, count)
-}
-
-func (s *mockNS) GetAllNotebooks() ([]*Notebook, error) {
-	return s.getAllNotebooks()
-}
-
-func (s *mockNS) CreateNotebook(b *Notebook, defaultNotebook bool) error {
-	panic("not implemented")
-}
-
-func (s *mockNS) GetNotebook(guid string) (*Notebook, error) {
-	panic("not implemented")
-}
-
-type mockStore struct {
-	getNotebookCache  func() (*NotebookCacheList, error)
-	storeNotebookList func(list *NotebookCacheList) error
-	getSearch         func() ([]*Note, error)
-}
-
-func (m *mockStore) SaveSearch([]*Note) error {
-	panic("not implemented")
-}
-
-func (m *mockStore) GetSearch() ([]*Note, error) {
-	return m.getSearch()
-}
-
-func (m *mockStore) Close() error {
-	panic("not implemented")
-}
-
-func (m *mockStore) GetSettings() (*Settings, error) {
-	panic("not implemented")
-}
-
-func (m *mockStore) StoreSettings(*Settings) error {
-	panic("not implemented")
-}
-
-func (m *mockStore) GetNotebookCache() (*NotebookCacheList, error) {
-	return m.getNotebookCache()
-}
-
-func (m *mockStore) StoreNotebookList(list *NotebookCacheList) error {
-	return m.storeNotebookList(list)
 }

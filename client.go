@@ -43,10 +43,14 @@ type Client struct {
 	Store        Storager
 	NoteStore    NotestoreClient
 	Editor       Editer
-	newCacheFile func(filename string) (CacheFile, error)
+	newCacheFile func(c *Client, filename string) (CacheFile, error)
 }
 
 func (c *Client) NewCacheFile(filename string) (CacheFile, error) {
+	return c.newCacheFile(c, filename)
+}
+
+func newFileCacheFile(c *Client, filename string) (CacheFile, error) {
 	fp := filepath.Join(c.Config.GetCacheFolder(), filename)
 	f, err := os.OpenFile(fp, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
