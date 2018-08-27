@@ -15,3 +15,17 @@ func defaultClient() *evernote.Client {
 	cfg.DB = db
 	return evernote.NewClient(cfg)
 }
+
+func newClient(opts clinote.ClientOption) *clinote.Client {
+	cfg := new(clinote.DefaultConfig)
+	db, err := storage.Open(cfg.GetConfigFolder())
+	if err != nil {
+		panic("Error when opening the database: " + err.Error())
+	}
+	ec := evernote.NewClient(cfg)
+	ns, err := ec.GetNoteStore()
+	if err != nil {
+		panic("Error when getting notestore: " + err.Error())
+	}
+	return clinote.NewClient(cfg, db, ns, opts)
+}

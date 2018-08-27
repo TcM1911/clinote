@@ -261,6 +261,20 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 	return SaveChanges(ns, note, opts)
 }
 
+// CreateAndEditNewNote creates a new note and opens it in the client's editor.
+// Once the editor has been closed, the note is saved to the notestore.
+func CreateAndEditNewNote(client *Client, note *Note, opts NoteOption) error {
+	data, err := editNote(client, note, opts)
+	if err != nil {
+		return err
+	}
+	err = parseNote(data, note, opts)
+	if err != nil {
+		return err
+	}
+	return SaveNewNote(client.NoteStore, note, opts&RawNote != 0)
+}
+
 func editNote(client *Client, note *Note, opts NoteOption) ([]byte, error) {
 	var body string
 	var filename string

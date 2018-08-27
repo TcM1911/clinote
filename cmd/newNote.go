@@ -73,31 +73,30 @@ func init() {
 }
 
 func createNote(title, notebook string, edit, raw bool) {
+	c := newClient(clinote.DefaultClientOptions)
 	note := new(clinote.Note)
-	if edit {
-		var t string
-		if title == "" {
-			t = "<TITLE>"
-		} else {
-			t = title
-		}
-		var b []byte
-		var err error
-		if raw {
-			b, err = createTmpFileAndEdit("new-note.xml", t, "")
-		} else {
-			b, err = createTmpFileAndEdit("new-note.md", t, "<CONTENT>")
-		}
-		if err != nil {
-			fmt.Println("Error when processing note:", err)
-			return
-		}
-		if err = parseFileChange(b, note, raw); err != nil {
-			fmt.Println("Error processing changes:", err)
-			return
-		}
+	if title == "" {
+		note.Title = "<TITLE>"
 	} else {
 		note.Title = title
+	}
+	if notebook != "" {
+		nb, err := clinote.FindNotebook(c.Store, c.NoteStore, notebook)
+		if err != nil {
+			fmt.Println("Error when searching for notebook:", err)
+			return
+		}
+		note.Notebook = nb
+	}
+	opts := clinote.DefaultNoteOption
+	if raw {
+		opts |= clinote.RawNote
+	}
+	if edit {
+		if err := clinote.CreateAndEditNewNote(c, note, opts); err != nil {
+			fmt.Println("Error when editing the note:", err)
+		}
+		return
 	}
 
 	client := defaultClient()
@@ -105,14 +104,6 @@ func createNote(title, notebook string, edit, raw bool) {
 	ns, err := client.GetNoteStore()
 	if err != nil {
 		return
-	}
-	if notebook != "" {
-		nb, err := clinote.FindNotebook(client.Config.Store(), ns, notebook)
-		if err != nil {
-			fmt.Println("Error when searching for notebook:", err)
-			return
-		}
-		note.Notebook = nb
 	}
 	clinote.SaveNewNote(ns, note, raw)
 }
