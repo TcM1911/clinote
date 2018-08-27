@@ -246,43 +246,7 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 	if err != nil {
 		return err
 	}
-	var body string
-	if opts&RawNote != 0 {
-		note.MDHash = md5.Sum([]byte(note.Title + "\n\n" + note.Body))
-		body = note.Body
-	} else {
-		note.MDHash = md5.Sum([]byte(note.Title + "\n\n" + note.MD))
-		body = note.MD
-	}
-	filename := note.GUID + ".md"
-	cacheFile, err := client.NewCacheFile(filename)
-	if err != nil {
-		return err
-	}
-	_, err = cacheFile.Write([]byte(note.Title + "\n\n" + body))
-	if err != nil {
-		return err
-	}
-	// XXX: We need to close the file handler to the file
-	// before it is handed over to the editor. Otherwise,
-	// Go doesn't detect the changes.
-	err = cacheFile.Close()
-	if err != nil {
-		return err
-	}
-	err = client.Edit(cacheFile)
-	if err != nil {
-		return err
-	}
-	err = cacheFile.ReOpen()
-	if err != nil {
-		return err
-	}
-	data, err := ioutil.ReadAll(cacheFile)
-	if err != nil {
-		return err
-	}
-	defer cacheFile.CloseAndRemove()
+	data, err := editNote(client, note, opts)
 	hash := md5.Sum(data)
 	if hash == note.MDHash {
 		return nil
@@ -292,6 +256,45 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 		return err
 	}
 	return SaveChanges(ns, note, opts)
+}
+
+func editNote(client *Client, note *Note, opts NoteOption) ([]byte, error) {
+	var body string
+	var filename string
+	if opts&RawNote != 0 {
+		note.MDHash = md5.Sum([]byte(note.Title + "\n\n" + note.Body))
+		body = note.Body
+		filename = note.GUID + ".xml"
+	} else {
+		note.MDHash = md5.Sum([]byte(note.Title + "\n\n" + note.MD))
+		body = note.MD
+		filename = note.GUID + ".md"
+	}
+	cacheFile, err := client.NewCacheFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	_, err = cacheFile.Write([]byte(note.Title + "\n\n" + body))
+	if err != nil {
+		return nil, err
+	}
+	// XXX: We need to close the file handler to the file
+	// before it is handed over to the editor. Otherwise,
+	// Go doesn't detect the changes.
+	err = cacheFile.Close()
+	if err != nil {
+		return nil, err
+	}
+	err = client.Edit(cacheFile)
+	if err != nil {
+		return nil, err
+	}
+	err = cacheFile.ReOpen()
+	if err != nil {
+		return nil, err
+	}
+	defer cacheFile.CloseAndRemove()
+	return ioutil.ReadAll(cacheFile)
 }
 
 func parseNote(b []byte, n *Note, opts NoteOption) error {
