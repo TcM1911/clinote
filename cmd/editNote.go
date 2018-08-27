@@ -18,14 +18,8 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"os/exec"
-	"path/filepath"
 
 	"github.com/TcM1911/clinote"
 	"github.com/spf13/cobra"
@@ -98,121 +92,4 @@ func init() {
 	editNoteCmd.Flags().StringP("title", "t", "", "Change the note title to.")
 	editNoteCmd.Flags().StringP("notebook", "b", "", "Move the note to notebook.")
 	editNoteCmd.Flags().Bool("raw", false, "Use raw content instead of markdown version.")
-}
-
-// func editNote(client *evernote.Client, title string, raw bool) error {
-// 	ns, err := client.GetNoteStore()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	n, err := clinote.GetNoteWithContent(client.Config.Store(), ns, title)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	n.MDHash = md5.Sum([]byte(n.Title + "\n\n" + n.MD))
-// 	if raw {
-// 		n.MDHash = md5.Sum([]byte(n.Title + "\n\n" + n.Body))
-// 	}
-// 	filename := string(n.GUID) + ".md"
-// 	var body string
-// 	if raw {
-// 		body = n.Body
-// 	} else {
-// 		body = n.MD
-// 	}
-// 	b, err := createTmpFileAndEdit(filename, n.Title, body)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	hash := md5.Sum(b)
-// 	if hash == n.MDHash {
-// 		return err
-// 	}
-// 	fmt.Println("Changes detected, saving note...")
-// 	err = parseFileChange(b, n, raw)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return clinote.SaveChanges(ns, n, raw)
-// }
-
-func createTmpFileAndEdit(filename, title, content string) ([]byte, error) {
-	cfg := new(clinote.DefaultConfig)
-	tempDir := cfg.GetCacheFolder()
-	if tempDir == "" {
-		return nil, errors.New("no valid temp folder")
-	}
-	fp := filepath.Join(tempDir, filename)
-	defer os.Remove(fp)
-	f := createTempFile(fp)
-	defer f.Close()
-	if f == nil {
-		return nil, errors.New("error when creating temp file")
-	}
-	f.WriteString(title + "\n\n" + content)
-	err := f.Sync()
-	if err != nil {
-		return nil, errors.New("error when flushing data to temp file" + err.Error())
-	}
-	if err = f.Close(); err != nil {
-		return nil, err
-	}
-	editInEditor(fp)
-	f, err = os.Open(fp)
-	if err != nil {
-		return nil, err
-	}
-	// Go back to the beginning of the file.
-	f.Seek(int64(0), 0)
-	return ioutil.ReadAll(f)
-}
-
-func createTempFile(fp string) *os.File {
-	f, err := os.OpenFile(fp, os.O_CREATE, 0600)
-	if err != nil {
-		fmt.Println("Error creating temp file:", err)
-		f.Close()
-		return nil
-	}
-	f.Close()
-	f, err = os.OpenFile(fp, os.O_RDWR, 0600)
-	if err != nil {
-		fmt.Println("Error when opening temp file:", err)
-		return nil
-	}
-	return f
-}
-
-func parseFileChange(b []byte, n *clinote.Note, raw bool) error {
-	r := bytes.NewReader(b)
-	br := bufio.NewReader(r)
-	// First line is the note title.
-	line, _, err := br.ReadLine()
-	if err != nil {
-		return errors.New("error parsing title" + err.Error())
-	}
-	title := string(line)
-	bodyBytes, err := ioutil.ReadAll(br)
-	if err != nil {
-		return errors.New("error parsing note body " + err.Error())
-	}
-	n.Title = title
-	if raw {
-		n.Body = string(bodyBytes)
-	} else {
-		n.MD = string(bodyBytes)
-	}
-	return nil
-}
-
-func editInEditor(file string) {
-	editor := os.Getenv("EDITOR")
-	if editor == "" {
-		editor = "vi"
-	}
-	cmd := exec.Command(editor, file)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
 }
