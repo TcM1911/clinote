@@ -247,6 +247,9 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 		return err
 	}
 	data, err := editNote(client, note, opts)
+	if err != nil {
+		return err
+	}
 	hash := md5.Sum(data)
 	if hash == note.MDHash {
 		return nil
