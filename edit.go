@@ -18,8 +18,14 @@
 package clinote
 
 import (
+	"errors"
 	"os"
 	"os/exec"
+)
+
+var (
+	// ErrNoEditorFound is returned if no editor was found.
+	ErrNoEditorFound = errors.New("no editor found")
 )
 
 // Editer is an object that can edit notes.
@@ -34,10 +40,39 @@ type VimEditor struct{}
 
 // Edit opens the CacheFile with VIM.
 func (e *VimEditor) Edit(file CacheFile) error {
-	cmd := exec.Command("vim", file.FilePath())
+	return executeEditorViaCommand("vim", file.FilePath())
+}
+
+func memoryReadLoop(file MemoryCacheFile) chan<- struct{} {
+	doneChan := make(chan struct{})
+	go func(closeChan <-chan struct{}) {
+		for {
+			select {
+			case <-closeChan:
+				return
+			}
+		}
+	}(doneChan)
+	return doneChan
+}
+
+// EnvEditor opens the note the note using the program defined
+// in the environment variable $EDITOR.
+type EnvEditor struct{}
+
+// Edit opens the CacheFile with the editor defined in $EDITOR.
+func (e *EnvEditor) Edit(file CacheFile) error {
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		return ErrNoEditorFound
+	}
+	return executeEditorViaCommand(editor, file.FilePath())
+}
+
+func executeEditorViaCommand(editor, filepath string) error {
+	cmd := exec.Command(editor, filepath)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Run()
-	return nil
+	return cmd.Run()
 }

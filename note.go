@@ -259,7 +259,7 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 	if err != nil {
 		return err
 	}
-	_, err = cacheFile.Write([]byte(title + "\n\n" + body))
+	_, err = cacheFile.Write([]byte(note.Title + "\n\n" + body))
 	if err != nil {
 		return err
 	}

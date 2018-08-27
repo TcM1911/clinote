@@ -18,6 +18,7 @@
 package clinote
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"time"
@@ -115,4 +116,41 @@ func (f *FileCacheFile) ReOpen() error {
 // FilePath returns the absolute path to the temporary file.
 func (f *FileCacheFile) FilePath() string {
 	return f.fp
+}
+
+// MemoryCacheFile is a memory based representation of a cache file.
+type MemoryCacheFile struct {
+	buf      *bytes.Buffer
+	pipePath string
+}
+
+// Read returns bytes from the memory buffer.
+func (m *MemoryCacheFile) Read(p []byte) (n int, err error) {
+	return m.buf.Read(p)
+}
+
+// Write adds bytes to the memory buffer.
+func (m *MemoryCacheFile) Write(p []byte) (n int, err error) {
+	return m.buf.Write(p)
+}
+
+// Close handles the close call.
+func (m *MemoryCacheFile) Close() error {
+	return nil
+}
+
+// FilePath returns the path to the FIFO pipe that should be used to
+// send and receive data to and from the Editer.
+func (m *MemoryCacheFile) FilePath() string {
+	return m.pipePath
+}
+
+// ReOpen handles the ReOpen call.
+func (m *MemoryCacheFile) ReOpen() error {
+	return nil
+}
+
+// CloseAndRemove deletes the named FIFO pipe.
+func (m *MemoryCacheFile) CloseAndRemove() error {
+	return os.RemoveAll(m.pipePath)
 }

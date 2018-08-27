@@ -83,12 +83,7 @@ with the notebook flag.`,
 			if raw {
 				opts = opts | clinote.RawNote
 			}
-			c := &clinote.Client{
-				Config:    client.Config,
-				Editor:    new(clinote.VimEditor),
-				NoteStore: ns,
-				Store:     client.Config.Store(),
-			}
+			c := clinote.NewClient(client.Config, client.Config.Store(), ns, clinote.DefaultClientOptions)
 			err := clinote.EditNote(c, args[0], opts)
 			if err != nil {
 				fmt.Println("Error when editing the note:", err)
