@@ -76,6 +76,12 @@
 			"revisionTime": "2016-10-24T00:09:04Z"
 		},
 		{
+			"checksumSHA1": "sZPoLYTMt3Bz8HNvSeA5TRSx3M8=",
+			"path": "github.com/olekukonko/tablewriter",
+			"revision": "d4647c9c7a84d847478d890b816b7d8b62b0b279",
+			"revisionTime": "2018-05-06T12:14:14Z"
+		},
+		{
 			"checksumSHA1": "zKKp5SZ3d3ycKe4EKMNT0BqAWBw=",
 			"origin": "github.com/stretchr/testify/vendor/github.com/pmezard/go-difflib/difflib",
 			"path": "github.com/pmezard/go-difflib/difflib",
