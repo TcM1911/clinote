@@ -21,13 +21,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/TcM1911/clinote"
 	"github.com/spf13/cobra"
 )
-
-const timeFormat = "2006-01-02"
 
 var listNoteCmd = &cobra.Command{
 	Use:   "list",
@@ -104,28 +101,11 @@ func findNotes(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	outputStr := []byte("Search request:.\n")
-	outputStr = append(outputStr, []byte(fmt.Sprintf("Found %d items\n", len(list)))...)
-	outputStr = append(outputStr, []byte(fmt.Sprintf("%3s : %10s | %10s | %-25s | %-25s\n",
-		"#",
-		"Created",
-		"Updated",
-		"Notebook",
-		"Title"))...)
-	for i, n := range list {
-		book, err := clinote.GetNotebook(ns, n.Notebook.GUID)
-		bookName := ""
-		if err != nil {
-			log.Println("Error when getting notebook name:", err)
-
-		} else {
-			bookName = book.Name
-		}
-		outputStr = append(outputStr, []byte(fmt.Sprintf("%3d : %10s | %10s | %-25s | %s\n", i+1,
-			time.Unix(int64(n.Created)/1000, 0).Format(timeFormat),
-			time.Unix(int64(n.Updated)/1000, 0).Format(timeFormat),
-			bookName, n.Title))...)
+	nbs, err := clinote.GetNotebooks(client.Config.Store(), ns, false)
+	if err != nil {
+		fmt.Println("Failed to get all notebooks:", err)
+		return
 	}
 
-	fmt.Println(string(outputStr))
+	clinote.WriteNoteListing(os.Stdout, list, nbs)
 }

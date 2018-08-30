@@ -57,10 +57,5 @@ func listNotebooks(sync bool) {
 		fmt.Println("Error when getting notebooks:", err)
 		os.Exit(1)
 	}
-	var output []byte
-
-	for i, b := range bs {
-		output = append(output, []byte(fmt.Sprintf("%d : %s\n", i+1, b.Name))...)
-	}
-	fmt.Println(string(output))
+	clinote.WriteNotebookListing(os.Stdout, bs)
 }
