@@ -30,5 +30,5 @@ func FromHTML(body string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return buf.String(), nil
+	return strings.Trim(buf.String(), "\n"), nil
 }

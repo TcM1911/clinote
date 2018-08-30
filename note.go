@@ -24,7 +24,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strconv"
 	"strings"
 
@@ -33,7 +33,10 @@ import (
 
 const (
 	// XMLHeader is the header that needs to added to the note content.
-	XMLHeader string = `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">`
+	XMLHeader = `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">`
+	// headSep indicates the start and end of the note header
+	headSep        = "---"
+	headTitleField = "title:"
 )
 
 var (
@@ -74,8 +77,6 @@ type Note struct {
 	Body string `xml:",innerxml"`
 	// MD is a Markdown representation of the note body.
 	MD string
-	// MDHash is the MD5 hash of the MD body.
-	MDHash [16]byte
 	// Deleted is set true if the note is marked for deletion.
 	Deleted bool
 	// Notebook the note belongs to.
@@ -84,6 +85,19 @@ type Note struct {
 	Created int64
 	// Updated
 	Updated int64
+}
+
+// Hash returns the hash for the note. If raw equals true, the raw
+// content is used in the hash. Otherwise, the MD content is used.
+func (n *Note) Hash(raw bool) []byte {
+	hasher := md5.New()
+	hasher.Write([]byte(n.Title))
+	if raw {
+		hasher.Write([]byte(n.Body))
+	} else {
+		hasher.Write([]byte(n.MD))
+	}
+	return hasher.Sum(nil)
 }
 
 // NoteFilter is the search filter for notes.
@@ -246,17 +260,18 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 	if err != nil {
 		return err
 	}
-	data, err := editNote(client, note, opts)
+	oldHash := note.Hash(opts&RawNote != 0)
+	cacheFile, err := editNote(client, note, opts)
 	if err != nil {
 		return err
 	}
-	hash := md5.Sum(data)
-	if hash == note.MDHash {
+	defer cacheFile.CloseAndRemove()
+	err = parseNote(cacheFile, note, opts)
+	if err != nil {
+		return err
+	}
+	if bytes.Equal(oldHash, note.Hash(opts&RawNote != 0)) {
 		return nil
-	}
-	err = parseNote(data, note, opts)
-	if err != nil {
-		return err
 	}
 	return SaveChanges(ns, note, opts)
 }
@@ -264,34 +279,33 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 // CreateAndEditNewNote creates a new note and opens it in the client's editor.
 // Once the editor has been closed, the note is saved to the notestore.
 func CreateAndEditNewNote(client *Client, note *Note, opts NoteOption) error {
-	data, err := editNote(client, note, opts)
+	cacheFile, err := editNote(client, note, opts)
+	defer cacheFile.CloseAndRemove()
 	if err != nil {
 		return err
 	}
-	err = parseNote(data, note, opts)
+	err = parseNote(cacheFile, note, opts)
 	if err != nil {
 		return err
 	}
 	return SaveNewNote(client.NoteStore, note, opts&RawNote != 0)
 }
 
-func editNote(client *Client, note *Note, opts NoteOption) ([]byte, error) {
-	var body string
+func editNote(client *Client, note *Note, opts NoteOption) (CacheFile, error) {
+	// var body string
 	var filename string
 	if opts&RawNote != 0 {
-		note.MDHash = md5.Sum([]byte(note.Title + "\n\n" + note.Body))
-		body = note.Body
+		// body = note.Body
 		filename = note.GUID + ".xml"
 	} else {
-		note.MDHash = md5.Sum([]byte(note.Title + "\n\n" + note.MD))
-		body = note.MD
+		// body = note.MD
 		filename = note.GUID + ".md"
 	}
 	cacheFile, err := client.NewCacheFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	_, err = cacheFile.Write([]byte(note.Title + "\n\n" + body))
+	err = writeNote(cacheFile, note, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -310,27 +324,83 @@ func editNote(client *Client, note *Note, opts NoteOption) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer cacheFile.CloseAndRemove()
-	return ioutil.ReadAll(cacheFile)
+	return cacheFile, nil
 }
 
-func parseNote(b []byte, n *Note, opts NoteOption) error {
-	r := bufio.NewReader(bytes.NewReader(b))
-	line, _, err := r.ReadLine()
-	if err != nil {
+func parseNote(r io.Reader, n *Note, opts NoteOption) error {
+	scanner := bufio.NewScanner(r)
+	if err := parseHeader(scanner, n); err != nil {
 		return err
 	}
-	n.Title = string(line)
-	content, err := ioutil.ReadAll(r)
-	if err != nil {
+	return parseContent(scanner, n, opts)
+}
+
+func parseHeader(scanner *bufio.Scanner, n *Note) error {
+	// Find beginning of the header.
+	for scanner.Scan() {
+		if scanner.Text() == headSep {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	// Parse header until the end.
+	for scanner.Scan() {
+		line := scanner.Text()
+		// End of header
+		if line == headSep {
+			break
+		} else if strings.Index(line, headTitleField) == 0 {
+			n.Title = strings.TrimSpace(line[len(headTitleField):])
+		}
+	}
+	return scanner.Err()
+}
+
+func parseContent(scanner *bufio.Scanner, n *Note, opts NoteOption) error {
+	buf := new(bytes.Buffer)
+	for scanner.Scan() {
+		buf.WriteString(scanner.Text() + "\n")
+	}
+	if err := scanner.Err(); err != nil {
 		return err
 	}
 	if opts&RawNote != 0 {
-		n.Body = string(content)
+		n.Body = strings.Trim(buf.String(), "\n")
 	} else {
-		n.MD = string(content)
+		n.MD = strings.Trim(buf.String(), "\n")
 	}
 	return nil
+}
+
+func writeNoteHeader(w io.Writer, n *Note) error {
+	a := []string{
+		headSep,
+		headTitleField + " " + n.Title,
+		headSep,
+	}
+	for _, line := range a {
+		_, err := w.Write([]byte(line + "\n"))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeNote(w io.Writer, n *Note, opts NoteOption) error {
+	if err := writeNoteHeader(w, n); err != nil {
+		return err
+	}
+	var err error
+	if opts&RawNote != 0 {
+		_, err = w.Write([]byte(n.Body))
+	} else {
+		_, err = w.Write([]byte(n.MD))
+	}
+	return err
 }
 
 func toXML(mdBody string) string {

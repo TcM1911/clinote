@@ -28,7 +28,7 @@ func TestFromHTML(t *testing.T) {
 
 	para := "Test paragraph"
 	doc := "<p>" + para + "</p>"
-	expected := para + "\n\n\n"
+	expected := para
 
 	actual, err := FromHTML(doc)
 	assert.NoError(err, "Should parse the doc without an error")

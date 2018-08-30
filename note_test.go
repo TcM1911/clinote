@@ -360,7 +360,11 @@ func TestEditNote(t *testing.T) {
 		// Setup notestore
 		noteTitle := "Note Title"
 		originalContent := "Body content"
-		expectedNote := &Note{Title: noteTitle, Body: "<en-note><p>" + originalContent + "</p></en-note>"}
+		expectedNote := &Note{
+			Title: noteTitle,
+			Body:  "<en-note><p>" + originalContent + "</p></en-note>",
+			MD:    originalContent,
+		}
 		ns := nsWithNote(expectedNote)
 		ns.getNoteContent = func(guid string) (string, error) { return expectedNote.Body, nil }
 
@@ -448,7 +452,7 @@ func TestEditNote(t *testing.T) {
 		assert.Contains(string(*writtenData), expectedNote.Title, "Should write title to file")
 		assert.Contains(string(*writtenData), originalContent, "Should write content to file")
 		assert.NotContains(string(*writtenData), "<p>", "Should not include HTML")
-		assert.True(saveNoteCalled, "Should not call SaveNote")
+		assert.True(saveNoteCalled, "Should call SaveNote")
 		assert.NotNil(savedNote, "Saved note should not be nil")
 		assert.Contains(savedNote.Body, addedToNote, "Saved note should include added data")
 	})
@@ -469,7 +473,7 @@ func TestEditNote(t *testing.T) {
 		assert.Contains(string(*writtenData), expectedNote.Title, "Should write title to file")
 		assert.Contains(string(*writtenData), originalContent, "Should write content to file")
 		assert.Contains(string(*writtenData), "<p>", "Should include HTML")
-		assert.True(saveNoteCalled, "Should not call SaveNote")
+		assert.True(saveNoteCalled, "Should call SaveNote")
 		assert.NotNil(savedNote, "Saved note should not be nil")
 		assert.Contains(savedNote.Body, addedToNote, "Saved note should include added data")
 	})
