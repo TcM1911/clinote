@@ -51,7 +51,7 @@ func TestNoteWriting(t *testing.T) {
 	n := &Note{Title: noteTitle, MD: noteContent}
 	w := new(bytes.Buffer)
 
-	err := writeNote(w, n, DefaultNoteOption)
+	err := WriteNote(w, n, DefaultNoteOption)
 	assert.NoError(err, "Should not fail")
 	assert.Equal(testContent, string(w.Bytes()), "Wrong content written")
 }

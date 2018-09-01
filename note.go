@@ -305,7 +305,7 @@ func editNote(client *Client, note *Note, opts NoteOption) (CacheFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = writeNote(cacheFile, note, opts)
+	err = WriteNote(cacheFile, note, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -390,7 +390,8 @@ func writeNoteHeader(w io.Writer, n *Note) error {
 	return nil
 }
 
-func writeNote(w io.Writer, n *Note, opts NoteOption) error {
+// WriteNote writes the note using the provided writer.
+func WriteNote(w io.Writer, n *Note, opts NoteOption) error {
 	if err := writeNoteHeader(w, n); err != nil {
 		return err
 	}
