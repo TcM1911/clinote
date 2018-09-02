@@ -65,6 +65,9 @@ const (
 	DefaultNoteOption NoteOption = 0
 	// RawNote option will display or edit the note in it's raw format.
 	RawNote = 1 << iota
+	// UseRecoveryPointNote should be used to signal that the user wants to
+	// reopen the note that the note store failed to save.
+	UseRecoveryPointNote
 )
 
 // Note is the structure of an Evernote note.
@@ -256,7 +259,16 @@ func SaveNewNote(ns NotestoreClient, n *Note, raw bool) error {
 // editor, the note is saved to the notestore.
 func EditNote(client *Client, title string, opts NoteOption) error {
 	db, ns := client.Store, client.NoteStore
-	note, err := GetNoteWithContent(db, ns, title)
+	var note *Note
+	var err error
+	if opts&UseRecoveryPointNote != 0 {
+		note, err = db.GetNoteRecoveryPoint()
+		if note.GUID == "" {
+			return ErrNoNoteFound
+		}
+	} else {
+		note, err = GetNoteWithContent(db, ns, title)
+	}
 	if err != nil {
 		return err
 	}
@@ -273,7 +285,14 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 	if bytes.Equal(oldHash, note.Hash(opts&RawNote != 0)) {
 		return nil
 	}
-	return SaveChanges(ns, note, opts)
+	err = SaveChanges(ns, note, opts)
+	if err != nil {
+		saveErr := db.SaveNoteRecoveryPoint(note)
+		if saveErr != nil {
+			err = errors.New("Error when saving note: " + err.Error() + "\nFailed to create recovery point: " + saveErr.Error())
+		}
+	}
+	return err
 }
 
 // CreateAndEditNewNote creates a new note and opens it in the client's editor.

@@ -34,9 +34,10 @@ var (
 
 // List of keys
 var (
-	settingsKey      = []byte("user_settings")
-	notebookCacheKey = []byte("notebook_cache")
-	searchCacheKey   = []byte("note_search_cache")
+	settingsKey         = []byte("user_settings")
+	notebookCacheKey    = []byte("notebook_cache")
+	searchCacheKey      = []byte("note_search_cache")
+	noteRecoverCacheKey = []byte("note_recover_cache")
 )
 
 var (
@@ -145,6 +146,26 @@ func (d *Database) GetSearch() ([]*clinote.Note, error) {
 		err = json.Unmarshal(data, &notes)
 	}
 	return notes, err
+}
+
+// SaveNoteRecoveryPoint saves the note to the database so it can be
+// recovered in the case something fails.
+func (d *Database) SaveNoteRecoveryPoint(note *clinote.Note) error {
+	data, err := json.Marshal(note)
+	if err != nil {
+		return err
+	}
+	return d.storeData(cacheBucket, noteRecoverCacheKey, data)
+}
+
+// GetNoteRecoveryPoint returns the saved note that failed to save.
+func (d *Database) GetNoteRecoveryPoint() (*clinote.Note, error) {
+	var note clinote.Note
+	data, err := d.getData(cacheBucket, noteRecoverCacheKey)
+	if err == nil && data != nil {
+		err = json.Unmarshal(data, &note)
+	}
+	return &note, err
 }
 
 // Close shuts down the connection to the database.

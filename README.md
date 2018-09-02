@@ -50,6 +50,14 @@ with the notebook flag.
 clinote note edit "note title" [--title "new note title"] [--notebook "new notebook"]
 ```
 
+### Recover note that failed to save
+
+If clinote fails to save a note, the note can be reopened for editing using the `--recover` flag.
+
+```
+clinote note edit --recover
+```
+
 ## Show note content
 
 You can send the note content to the standard out with the command below:

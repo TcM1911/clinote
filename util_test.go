@@ -73,9 +73,19 @@ func (s *mockNS) GetNotebook(guid string) (*Notebook, error) {
 }
 
 type mockStore struct {
-	getNotebookCache  func() (*NotebookCacheList, error)
-	storeNotebookList func(list *NotebookCacheList) error
-	getSearch         func() ([]*Note, error)
+	getNotebookCache      func() (*NotebookCacheList, error)
+	storeNotebookList     func(list *NotebookCacheList) error
+	getSearch             func() ([]*Note, error)
+	saveNoteRecoveryPoint func(*Note) error
+	getNoteRecoveryPoint  func() (*Note, error)
+}
+
+func (m *mockStore) SaveNoteRecoveryPoint(n *Note) error {
+	return m.saveNoteRecoveryPoint(n)
+}
+
+func (m *mockStore) GetNoteRecoveryPoint() (*Note, error) {
+	return m.getNoteRecoveryPoint()
 }
 
 func (m *mockStore) SaveSearch([]*Note) error {

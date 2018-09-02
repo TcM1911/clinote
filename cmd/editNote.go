@@ -40,10 +40,6 @@ To change to title, the title flag can be used.
 The note can be moved to another notebook by defining the new notebook
 with the notebook flag.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 1 {
-			fmt.Println("Error, a note has to be given.")
-			return
-		}
 		raw, err := cmd.Flags().GetBool("raw")
 		if err != nil {
 			fmt.Println("Error when paring raw flag:", err)
@@ -59,10 +55,32 @@ with the notebook flag.`,
 			fmt.Println("Error parsing the notebook name:", err)
 			return
 		}
+		recover, err := cmd.Flags().GetBool("recover")
+		if err != nil {
+			return
+		}
 		client := defaultClient()
 		defer client.Close()
 		ns, err := client.GetNoteStore()
 		if err != nil {
+			fmt.Println("Failed to get notestore:", err)
+			return
+		}
+		opts := clinote.DefaultNoteOption
+		if raw {
+			opts = opts | clinote.RawNote
+		}
+		if recover {
+			c := clinote.NewClient(client.Config, client.Config.Store(), ns, clinote.DefaultClientOptions)
+			err := clinote.EditNote(c, "", opts|clinote.UseRecoveryPointNote)
+			if err != nil {
+				fmt.Println("Error when edit recovery note:", err)
+				os.Exit(1)
+			}
+			return
+		}
+		if len(args) != 1 {
+			fmt.Println("Error, a note has to be given.")
 			return
 		}
 		if title != "" {
@@ -73,10 +91,6 @@ with the notebook flag.`,
 		}
 
 		if title == "" && notebook == "" {
-			opts := clinote.DefaultNoteOption
-			if raw {
-				opts = opts | clinote.RawNote
-			}
 			c := clinote.NewClient(client.Config, client.Config.Store(), ns, clinote.DefaultClientOptions)
 			err := clinote.EditNote(c, args[0], opts)
 			if err != nil {
@@ -92,4 +106,5 @@ func init() {
 	editNoteCmd.Flags().StringP("title", "t", "", "Change the note title to.")
 	editNoteCmd.Flags().StringP("notebook", "b", "", "Move the note to notebook.")
 	editNoteCmd.Flags().Bool("raw", false, "Use raw content instead of markdown version.")
+	editNoteCmd.Flags().Bool("recover", false, "Recover previous note that failed to save.")
 }

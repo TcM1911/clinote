@@ -32,6 +32,10 @@ type Storager interface {
 	SaveSearch([]*Note) error
 	// GetSearch returns a saved note search from the database.
 	GetSearch() ([]*Note, error)
+	// SaveNoteRecoveryPoint saves the note as a recovery point.
+	SaveNoteRecoveryPoint(*Note) error
+	// GetNoteREcoveryPoint returns the saved note.
+	GetNoteRecoveryPoint() (*Note, error)
 }
 
 // Settings is a struct holding the user's settings for the application.

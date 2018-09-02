@@ -353,7 +353,7 @@ func TestEditNote(t *testing.T) {
 	assert := assert.New(t)
 
 	// Setup test fixtures.
-	var setupClient = func(addToNote string) (*Client, *mockNS, *[]byte, *Note, string) {
+	var setupClientAndStore = func(addToNote string) (*Client, *mockNS, *[]byte, *Note, string, *mockStore) {
 		// Setup store
 		store := new(mockStore)
 
@@ -364,6 +364,7 @@ func TestEditNote(t *testing.T) {
 			Title: noteTitle,
 			Body:  "<en-note><p>" + originalContent + "</p></en-note>",
 			MD:    originalContent,
+			GUID:  "NOTEGUID",
 		}
 		ns := nsWithNote(expectedNote)
 		ns.getNoteContent = func(guid string) (string, error) { return expectedNote.Body, nil }
@@ -399,7 +400,11 @@ func TestEditNote(t *testing.T) {
 			buf := new(bytes.Buffer)
 			return &mockCacheFile{buffer: buf}, nil
 		}
-		return c, ns, &writtenData, expectedNote, originalContent
+		return c, ns, &writtenData, expectedNote, originalContent, store
+	}
+	var setupClient = func(addToNote string) (*Client, *mockNS, *[]byte, *Note, string) {
+		a, b, c, d, e, _ := setupClientAndStore(addToNote)
+		return a, b, c, d, e
 	}
 
 	// No edit
@@ -555,6 +560,75 @@ func TestEditNote(t *testing.T) {
 		err := EditNote(c, expectedNote.Title, DefaultNoteOption|RawNote)
 		assert.Error(err, "Should return an error")
 		assert.Equal(expectedError, err, "Wrong error returned")
+	})
+
+	t.Run("save_recovery_point_if_saves_fails", func(t *testing.T) {
+		c, ns, _, expectedNote, _, store := setupClientAndStore("added text")
+		ns.updateNote = func(*Note) error { return expectedError }
+		var savedNote *Note
+		store.saveNoteRecoveryPoint = func(n *Note) error {
+			savedNote = n
+			return nil
+		}
+
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption)
+		assert.Error(err, "Should return an error")
+		assert.Equal(expectedError, err, "Wrong error returned")
+
+		assert.Equal(expectedNote, savedNote, "Note not saved")
+	})
+
+	t.Run("warn_if_recovery_fails", func(t *testing.T) {
+		c, ns, _, expectedNote, _, store := setupClientAndStore("added text")
+		ns.updateNote = func(*Note) error { return expectedError }
+		expectedSaveError := errors.New("recovery error")
+		store.saveNoteRecoveryPoint = func(n *Note) error {
+			return expectedSaveError
+		}
+
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption)
+		assert.Error(err, "Should return an error")
+		assert.Contains(err.Error(), expectedError.Error(), "Should include notestore error")
+		assert.Contains(err.Error(), expectedSaveError.Error(), "Should include recovery point error")
+	})
+
+	t.Run("recover_note", func(t *testing.T) {
+		c, ns, _, expectedNote, _, store := setupClientAndStore("added text")
+		store.saveNoteRecoveryPoint = func(n *Note) error {
+			return nil
+		}
+		store.getNoteRecoveryPoint = func() (*Note, error) {
+			return expectedNote, nil
+		}
+		ns.getNoteContent = func(string) (string, error) { return "", errors.New("should not be called") }
+
+		saveNoteCalled := false
+		var savedNote *Note
+		ns.updateNote = func(n *Note) error {
+			saveNoteCalled = true
+			savedNote = n
+			return nil
+		}
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption|UseRecoveryPointNote)
+		assert.NoError(err, "Should not return an error")
+		assert.True(saveNoteCalled)
+		assert.Equal(expectedNote, savedNote, "Wrong note saved")
+	})
+
+	t.Run("error_recover_note_if_empty", func(t *testing.T) {
+		c, ns, _, expectedNote, _, store := setupClientAndStore("added text")
+		expectedNote.GUID = ""
+		store.saveNoteRecoveryPoint = func(n *Note) error {
+			return nil
+		}
+		store.getNoteRecoveryPoint = func() (*Note, error) {
+			return expectedNote, nil
+		}
+		ns.getNoteContent = func(string) (string, error) { return "", errors.New("should not be called") }
+
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption|UseRecoveryPointNote)
+		assert.Error(err, "Should return an error")
+		assert.Equal(ErrNoNoteFound, err, "Wrong error returned")
 	})
 }
 

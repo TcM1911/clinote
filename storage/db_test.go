@@ -99,6 +99,25 @@ func TestSearchCaching(t *testing.T) {
 	})
 }
 
+func TestRecoveryPoint(t *testing.T) {
+	assert := assert.New(t)
+	db, tmpDir := setupTestDB(t)
+	defer os.RemoveAll(tmpDir)
+	defer db.Close()
+	expectedNote := &clinote.Note{Title: "Test note"}
+
+	t.Run("Store", func(t *testing.T) {
+		err := db.SaveNoteRecoveryPoint(expectedNote)
+		assert.NoError(err, "Should not fail to save")
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		actual, err := db.GetNoteRecoveryPoint()
+		assert.NoError(err, "Should not fail to return recovery point")
+		assert.Equal(expectedNote, actual, "Wrong note returned")
+	})
+}
+
 func compareCacheList(assert *assert.Assertions, expected *clinote.NotebookCacheList, actual *clinote.NotebookCacheList) {
 	assert.Equal(expected.Limit, actual.Limit)
 	assert.Equal(expected.Notebooks, actual.Notebooks)
