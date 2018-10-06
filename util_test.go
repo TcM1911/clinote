@@ -167,3 +167,26 @@ func (m *mockCacheFile) ReOpen() error {
 func (m *mockCacheFile) CloseAndRemove() error {
 	return nil
 }
+
+type mockCredentialStore struct {
+	add        func(*Credential) error
+	remove     func(*Credential) error
+	getAll     func() ([]*Credential, error)
+	getByIndex func(int) (*Credential, error)
+}
+
+func (m *mockCredentialStore) Add(c *Credential) error {
+	return m.add(c)
+}
+
+func (m *mockCredentialStore) Remove(c *Credential) error {
+	return m.remove(c)
+}
+
+func (m *mockCredentialStore) GetAll() ([]*Credential, error) {
+	return m.getAll()
+}
+
+func (m *mockCredentialStore) GetByIndex(index int) (*Credential, error) {
+	return m.getByIndex(index)
+}

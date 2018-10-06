@@ -38,6 +38,19 @@ type Storager interface {
 	GetNoteRecoveryPoint() (*Note, error)
 }
 
+// UserCredentialStore provides an interface to a backend that stores
+// a user's credentials.
+type UserCredentialStore interface {
+	// Add saves a new credential to the store.
+	Add(*Credential) error
+	// Remove deletes a credential from the store.
+	Remove(*Credential) error
+	// GetAll returns all credentials in the store.
+	GetAll() ([]*Credential, error)
+	// GetByIndex returns a user credential by its index.
+	GetByIndex(index int) (*Credential, error)
+}
+
 // Settings is a struct holding the user's settings for the application.
 type Settings struct {
 	// APIKey is the user's session key.

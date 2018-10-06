@@ -50,6 +50,28 @@ func TestWritingNoteAndNotebookTables(t *testing.T) {
 	})
 }
 
+func TestCredentialTable(t *testing.T) {
+	assert := assert.New(t)
+	creds := []*Credential{
+		&Credential{Name: "Cred1", Secret: "Sec1", CredType: EvernoteCredential},
+		&Credential{Name: "Cred2", Secret: "Sec2", CredType: EvernoteSandboxCredential},
+	}
+	buf := new(bytes.Buffer)
+
+	WriteCredentialListing(buf, creds)
+
+	assert.Equal(expectedCredentialList, string(buf.Bytes()))
+}
+
+func TestSettingsTable(t *testing.T) {
+	assert := assert.New(t)
+	buf := new(bytes.Buffer)
+
+	WriteSettingsListing(buf, []string{"credential"}, []string{"An index value."}, []string{"Set the active credential for the user."})
+
+	assert.Equal(expectedSettingList, string(buf.Bytes()))
+}
+
 const expectedNotebooklist = `+---+-----------+
 | # |   NAME    |
 +---+-----------+
@@ -65,4 +87,19 @@ const expectedNotelist = `+---+-------+-----------+------------+------------+
 | 2 | Note2 | Notebook2 | 1970-01-01 | 1970-01-01 |
 | 3 | Note3 | Notebook3 | 1970-01-01 | 1970-01-01 |
 +---+-------+-----------+------------+------------+
+`
+const expectedCredentialList = `+---+-------+------------------+
+| # | NAME  |       TYPE       |
++---+-------+------------------+
+| 1 | Cred1 | Evernote         |
+| 2 | Cred2 | Evernote Sandbox |
++---+-------+------------------+
+`
+
+const expectedSettingList = `+------------+-----------------+--------------------------------+
+|  SETTING   |    ARGUMENTS    |          DESCRIPTION           |
++------------+-----------------+--------------------------------+
+| credential | An index value. | Set the active credential for  |
+|            |                 | the user.                      |
++------------+-----------------+--------------------------------+
 `

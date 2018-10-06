@@ -118,6 +118,65 @@ func TestRecoveryPoint(t *testing.T) {
 	})
 }
 
+func TestCredentialStore(t *testing.T) {
+	assert := assert.New(t)
+	db, tmpDir := setupTestDB(t)
+	defer os.RemoveAll(tmpDir)
+	defer db.Close()
+	expectedCredentials := []*clinote.Credential{
+		&clinote.Credential{Name: "Cred1", Secret: "Sec1", CredType: clinote.EvernoteCredential},
+		&clinote.Credential{Name: "Cred2", Secret: "Sec2", CredType: clinote.EvernoteSandboxCredential},
+		&clinote.Credential{Name: "Cred3", Secret: "Sec3", CredType: clinote.EvernoteCredential},
+	}
+
+	t.Run("Add and getall", func(t *testing.T) {
+		for _, cred := range expectedCredentials {
+			err := db.Add(cred)
+			assert.NoError(err, "Should not fail to save")
+		}
+		creds, err := db.GetAll()
+		assert.NoError(err, "Should get all without an error")
+		for i, cred := range creds {
+			assert.Equal(*expectedCredentials[i], *cred)
+		}
+	})
+
+	t.Run("Get by index", func(t *testing.T) {
+		for i, expected := range expectedCredentials {
+			cred, err := db.GetByIndex(i)
+			assert.NoError(err, "Failed to get credential by index")
+			assert.Equal(*expected, *cred, "Credential returned doesn't match")
+		}
+	})
+
+	t.Run("Out of range index checks", func(t *testing.T) {
+		for _, index := range []int{-1, len(expectedCredentials), len(expectedCredentials) + 1} {
+			cred, err := db.GetByIndex(index)
+			assert.Error(err, "Should return error")
+			assert.Nil(cred, "Nil should be returned")
+			assert.Equal(ErrIndexOutOfRange, err, "Wrong error returned")
+		}
+	})
+
+	t.Run("Remove a credential", func(t *testing.T) {
+		err := db.Remove(expectedCredentials[len(expectedCredentials)-1])
+		assert.NoError(err, "Should not fail removing")
+		creds, err := db.GetAll()
+		if assert.NoError(err, "Failed to get all creds") {
+			for i, cred := range creds {
+				assert.NotEqual(*expectedCredentials[len(expectedCredentials)-1], *cred, "Should not match removed credential")
+				assert.Equal(*expectedCredentials[i], *cred, "Should maintain the same location in the array")
+			}
+		}
+	})
+
+	t.Run("Do not remove no existing", func(t *testing.T) {
+		err := db.Remove(new(clinote.Credential))
+		assert.Error(err, "Should not fail removing")
+		assert.Equal(clinote.ErrNoMatchingCredentialFound, err)
+	})
+}
+
 func compareCacheList(assert *assert.Assertions, expected *clinote.NotebookCacheList, actual *clinote.NotebookCacheList) {
 	assert.Equal(expected.Limit, actual.Limit)
 	assert.Equal(expected.Notebooks, actual.Notebooks)
