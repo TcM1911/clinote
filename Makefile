@@ -2,7 +2,7 @@ VERSION_FILE=cmd/root.go
 VERSION=$(shell grep "const version string" $(VERSION_FILE) | cut -d '"' -f 2)
 
 DIST_FOLDER=dist
-RELEASE_FILES=CHANGELOG.md LICENSE README.md TODO.md
+RELEASE_FILES=CHANGELOG.md LICENSE README.md
 
 build:
 	go build -v -o clinote ./cmd/...
