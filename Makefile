@@ -7,9 +7,6 @@ RELEASE_FILES=CHANGELOG.md LICENSE README.md TODO.md
 build:
 	go build -v -o clinote ./cmd/...
 
-build_dev:
-	go build -v -tags=dev -o clinote ./cmd/...
-
 clean:
 	rm -f clinote
 	rm -f *.tar.gz *.tar.gz.sha256sum
