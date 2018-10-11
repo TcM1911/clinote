@@ -1,18 +1,13 @@
 package evernote
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/TcM1911/clinote"
 	ec "github.com/TcM1911/evernote-sdk-golang/client"
 	"github.com/TcM1911/evernote-sdk-golang/notestore"
-	"github.com/mrjones/oauth"
 )
 
-var apiConsumer = "clinote"
-var apiSecret = "e9a3234ceefed62b"
-var devBuild = false
+var apiConsumer = "DEPRECATED"
+var apiSecret = "DEPRECATED"
 
 // Client is an implementation of the client interface for Evernote.
 type Client struct {
@@ -58,44 +53,40 @@ func (c *Client) GetNoteStore() (clinote.NotestoreClient, error) {
 	return store, nil
 }
 
-// GetAuthorizedToken gets the authorized token from the server.
-func (c *Client) GetAuthorizedToken(tmpToken *oauth.RequestToken, verifier string) (string, error) {
-	token, err := c.evernote.GetAuthorizedToken(tmpToken, verifier)
-	if err != nil {
-		return "", err
-	}
-	return token.Token, nil
-}
-
-// GetRequestToken requests a request token from the server.
-func (c *Client) GetRequestToken(callback string) (*oauth.RequestToken, string, error) {
-	return c.evernote.GetRequestToken(callback)
-}
-
 // NewClient creates a new Evernote client.
 func NewClient(cfg clinote.Configuration) *Client {
 	client := new(Client)
 	client.Config = cfg
 	env := ec.PRODUCTION
-	if devBuild {
-		fmt.Println("Dev build")
-		env = ec.SANDBOX
-	}
-	client.evernote = ec.NewClient(apiConsumer, apiSecret, env)
-	devToken := os.Getenv("EVERNOTE_DEV_TOKEN")
-	if devToken != "" {
-		fmt.Println("Using dev token")
-		client.apiToken = devToken
-	} else {
-		key := migrateOldSession(cfg)
-		if key == "" {
-			settings, err := cfg.Store().GetSettings()
-			if err != nil {
-				panic(err.Error())
-			}
-			key = settings.APIKey
+
+	key := migrateOldSession(cfg)
+	if key != "" {
+		// Migrate an old session.
+		settings, err := cfg.Store().GetSettings()
+		if err != nil {
+			panic(err.Error())
 		}
-		client.apiToken = key
+		settings.Credential = &clinote.Credential{
+			Name:     "OAuth",
+			Secret:   key,
+			CredType: clinote.EvernoteCredential,
+		}
+		if err := cfg.Store().StoreSettings(settings); err != nil {
+			panic(err.Error())
+		}
+	} else {
+		settings, err := cfg.Store().GetSettings()
+		if err != nil {
+			panic(err.Error())
+		}
+		key = settings.APIKey
+		if settings.Credential.CredType == clinote.EvernoteSandboxCredential {
+			env = ec.SANDBOX
+		}
 	}
+	// TODO: Change the library or use a new lib where this is not needed.
+	client.evernote = ec.NewClient(apiConsumer, apiSecret, env)
+	client.apiToken = key
+
 	return client
 }
