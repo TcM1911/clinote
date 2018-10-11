@@ -21,13 +21,33 @@ go get -v github.com/TcM1911/clinote/cmd
 
 Download pre-build binary from the [release page](https://github.com/TcM1911/clinote/releases).
 
-## Authorize to Evernote via OAuth
+## Authenticating with the Evernote Cloud API using Tokens
 
-Before you can use any features, you need to authorize CLInote to access youre notes. To authorize run the command:
+Before you can use any features, you need to generate an API token for CLInote to use. Generate a
+token [here](https://dev.evernote.com/doc/articles/dev_tokens.php).
+To add a new set of user credentials, run the command:
+
 ```
-clinote user login
+clinote user add
 ```
-If you have your default browser defined in the $BROWSER environment variable, CLInote will open the link in your default browser.
+
+To add sandbox credentials, run the command:
+
+```
+clinote user add --sandbox
+```
+
+You can list the credentials with the command:
+
+```
+clinote user list
+```
+
+To set a credential as active use the command `clinote user set credential "index"`. For example:
+
+```
+clinote user set credential 1
+```
 
 ## Create a new note
 
