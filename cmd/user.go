@@ -18,6 +18,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"sort"
@@ -130,12 +131,18 @@ func setCredential(store clinote.UserCredentialStore, db clinote.Storager, strIn
 		fmt.Println("Error when getting credential list:", err)
 		return
 	}
+	// Index is a 1 based index for the user.
+	if index < 1 || index > len(creds) {
+		fmt.Println("Error index out-of-range")
+		return
+	}
 	settings, err := db.GetSettings()
 	if err != nil {
 		fmt.Println("Error when getting the settings:", err)
 		return
 	}
 	settings.APIKey = creds[index-1].Secret
+	settings.Credential = creds[index-1]
 	err = db.StoreSettings(settings)
 	if err != nil {
 		fmt.Println("Error when saving the settings:", err)
@@ -208,8 +215,10 @@ func parseStringFlag(cmd *cobra.Command, flag, parseErr, scanLine string) string
 		fmt.Println(parseErr, err)
 	}
 	if n == "" {
+		scanner := bufio.NewScanner(os.Stdin)
 		fmt.Print(scanLine)
-		fmt.Scanln(&name)
+		scanner.Scan()
+		name = scanner.Text()
 	} else {
 		name = n
 	}
