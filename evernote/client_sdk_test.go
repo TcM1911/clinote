@@ -133,25 +133,3 @@ func (m *mockStore) StoreSettings(s *clinote.Settings) error {
 	m.settings.APIKey = s.APIKey
 	return nil
 }
-
-type cfgMock struct {
-	getCacheFolder func() string
-	getConfFolder  func() string
-	getStore       func() clinote.Storager
-}
-
-func (c *cfgMock) GetConfigFolder() string {
-	return c.getConfFolder()
-}
-
-func (c *cfgMock) GetCacheFolder() string {
-	return c.getCacheFolder()
-}
-
-func (c *cfgMock) Store() clinote.Storager {
-	return c.getStore()
-}
-
-func (c *cfgMock) Close() error {
-	return nil
-}

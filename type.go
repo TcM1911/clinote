@@ -55,8 +55,6 @@ type UserCredentialStore interface {
 type Settings struct {
 	// APIKey is the user's session key.
 	APIKey string
-	// Credential holds the user's credential data.
-	Credential *Credential
 }
 
 // Credential is a struct that holds credential information.
