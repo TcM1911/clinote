@@ -53,14 +53,20 @@ func TestWritingNoteAndNotebookTables(t *testing.T) {
 func TestCredentialTable(t *testing.T) {
 	assert := assert.New(t)
 	creds := []*Credential{
-		&Credential{Name: "Cred1", Secret: "Sec1", CredType: EvernoteCredential},
-		&Credential{Name: "Cred2", Secret: "Sec2", CredType: EvernoteSandboxCredential},
+		&Credential{Name: "Cred1", Secret: "test12", CredType: EvernoteCredential},
+		&Credential{Name: "Cred2", Secret: "test23", CredType: EvernoteSandboxCredential},
 	}
-	buf := new(bytes.Buffer)
+	t.Run("print without secret", func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		WriteCredentialListing(buf, creds)
+		assert.Equal(expectedCredentialList, string(buf.Bytes()))
+	})
 
-	WriteCredentialListing(buf, creds)
-
-	assert.Equal(expectedCredentialList, string(buf.Bytes()))
+	t.Run("print with secret", func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		WriteCredentialListingWithSecret(buf, creds)
+		assert.Equal(expectedCredentialListWithSecret, string(buf.Bytes()))
+	})
 }
 
 func TestSettingsTable(t *testing.T) {
@@ -94,6 +100,14 @@ const expectedCredentialList = `+---+-------+------------------+
 | 1 | Cred1 | Evernote         |
 | 2 | Cred2 | Evernote Sandbox |
 +---+-------+------------------+
+`
+
+const expectedCredentialListWithSecret = `+---+-------+------------------+--------+
+| # | NAME  |       TYPE       | SECRET |
++---+-------+------------------+--------+
+| 1 | Cred1 | Evernote         | test12 |
+| 2 | Cred2 | Evernote Sandbox | test23 |
++---+-------+------------------+--------+
 `
 
 const expectedSettingList = `+------------+-----------------+--------------------------------+

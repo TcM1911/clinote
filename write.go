@@ -68,12 +68,29 @@ func WriteNotebookListing(w io.Writer, nbs []*Notebook) {
 
 // WriteCredentialListing creates and writes a credential listing table using the writer.
 func WriteCredentialListing(w io.Writer, creds []*Credential) {
+	writeCredentialList(w, creds, false)
+}
+
+// WriteCredentialListingWithSecret creates and writes a credential listing table using the writer.
+func WriteCredentialListingWithSecret(w io.Writer, creds []*Credential) {
+	writeCredentialList(w, creds, true)
+}
+
+func writeCredentialList(w io.Writer, creds []*Credential, includeToken bool) {
 	table := tablewriter.NewWriter(w)
-	table.SetHeader(credentialHeader)
+	header := credentialHeader
+	if includeToken {
+		header = append(header, "Secret")
+	}
+	table.SetHeader(header)
 
 	for i, cred := range creds {
 		index := strconv.Itoa(i + 1)
-		table.Append([]string{index, cred.Name, cred.CredType.String()})
+		line := []string{index, cred.Name, cred.CredType.String()}
+		if includeToken {
+			line = append(line, cred.Secret)
+		}
+		table.Append(line)
 	}
 	table.Render()
 }

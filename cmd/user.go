@@ -48,6 +48,8 @@ func init() {
 	userAddCmd.Flags().StringP("name", "n", "", "Username")
 	userAddCmd.Flags().StringP("secret", "s", "", "Access token")
 	userAddCmd.Flags().Bool("sandbox", false, "Use Evernote's Sandbox instance")
+	// List flags
+	userListCmd.Flags().Bool("show-secret", false, "Include credential secret in the output")
 }
 
 var userListCmd = &cobra.Command{
@@ -161,9 +163,18 @@ func printConfigOptions() {
 }
 
 func listCredentials(store clinote.UserCredentialStore, cmd *cobra.Command) {
+	includeToken, err := cmd.Flags().GetBool("show-secret")
+	if err != nil {
+		fmt.Printf("Error when parsing arguments: %s\n", err.Error())
+		return
+	}
 	list, err := clinote.GetAllCredentials(store)
 	if err != nil {
 		fmt.Println("Failed to get all credentials:", err)
+		return
+	}
+	if includeToken {
+		clinote.WriteCredentialListingWithSecret(os.Stdout, list)
 		return
 	}
 	clinote.WriteCredentialListing(os.Stdout, list)
