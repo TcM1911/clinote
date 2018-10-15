@@ -32,10 +32,56 @@ type Storager interface {
 	SaveSearch([]*Note) error
 	// GetSearch returns a saved note search from the database.
 	GetSearch() ([]*Note, error)
+	// SaveNoteRecoveryPoint saves the note as a recovery point.
+	SaveNoteRecoveryPoint(*Note) error
+	// GetNoteREcoveryPoint returns the saved note.
+	GetNoteRecoveryPoint() (*Note, error)
+}
+
+// UserCredentialStore provides an interface to a backend that stores
+// a user's credentials.
+type UserCredentialStore interface {
+	// Add saves a new credential to the store.
+	Add(*Credential) error
+	// Remove deletes a credential from the store.
+	Remove(*Credential) error
+	// GetAll returns all credentials in the store.
+	GetAll() ([]*Credential, error)
+	// GetByIndex returns a user credential by its index.
+	GetByIndex(index int) (*Credential, error)
 }
 
 // Settings is a struct holding the user's settings for the application.
 type Settings struct {
-	// APIKey is the user's OAuth session key.
+	// APIKey is the user's session key.
 	APIKey string
+	// Credential holds the user's credential data.
+	Credential *Credential
 }
+
+// Credential is a struct that holds credential information.
+type Credential struct {
+	// Name is the user given name for the credential.
+	Name string
+	// Secret is used to authenticate to the note store.
+	Secret string
+	// CredType is used to identify credential type.
+	CredType CredentialType
+}
+
+// CredentialType is a type of credential. Used to identify which backend to use
+type CredentialType uint8
+
+func (c CredentialType) String() string {
+	return credtypeStringMapper[c]
+}
+
+const (
+	// EvernoteCredential is used for credentials that can authenticate with Evernote.
+	EvernoteCredential CredentialType = iota
+	// EvernoteSandboxCredential is used for credentials that can authenticate with
+	// Evernote's sandbox server.
+	EvernoteSandboxCredential
+)
+
+var credtypeStringMapper = []string{"Evernote", "Evernote Sandbox"}

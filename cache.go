@@ -18,6 +18,9 @@
 package clinote
 
 import (
+	"bytes"
+	"io"
+	"os"
 	"time"
 )
 
@@ -54,4 +57,100 @@ type NotebookCacheList struct {
 // IsOutdated returns true if the list has expired.
 func (n *NotebookCacheList) IsOutdated() bool {
 	return time.Since(n.Timestamp) > n.Limit
+}
+
+// CacheFile has the note content written and the user
+// edits the content in the CacheFile to update the note's
+// content.
+type CacheFile interface {
+	io.ReadWriteCloser
+	FilePath() string
+	ReOpen() error
+	CloseAndRemove() error
+}
+
+// FileCacheFile implements the CacheFile interface and uses
+// a temporary file for storing the data on disk.
+type FileCacheFile struct {
+	file *os.File
+	fp   string
+}
+
+// Read returns content from the file.
+func (f *FileCacheFile) Read(p []byte) (n int, err error) {
+	return f.file.Read(p)
+}
+
+// Write adds content to the file.
+func (f *FileCacheFile) Write(p []byte) (n int, err error) {
+	return f.file.Write(p)
+}
+
+// Close closes the file.
+// This should be called before the file is edited
+// by the editor.
+func (f *FileCacheFile) Close() error {
+	return f.file.Close()
+}
+
+// CloseAndRemove closes the file and removes it.
+func (f *FileCacheFile) CloseAndRemove() error {
+	err := f.Close()
+	if err != nil {
+		return err
+	}
+	return os.Remove(f.fp)
+}
+
+// ReOpen opens the file again after it's been closed.
+// This should be called after the file has been edited.
+func (f *FileCacheFile) ReOpen() error {
+	file, err := os.OpenFile(f.fp, os.O_RDWR, 0600)
+	if err != nil {
+		return err
+	}
+	f.file = file
+	return nil
+}
+
+// FilePath returns the absolute path to the temporary file.
+func (f *FileCacheFile) FilePath() string {
+	return f.fp
+}
+
+// MemoryCacheFile is a memory based representation of a cache file.
+type MemoryCacheFile struct {
+	buf      *bytes.Buffer
+	pipePath string
+}
+
+// Read returns bytes from the memory buffer.
+func (m *MemoryCacheFile) Read(p []byte) (n int, err error) {
+	return m.buf.Read(p)
+}
+
+// Write adds bytes to the memory buffer.
+func (m *MemoryCacheFile) Write(p []byte) (n int, err error) {
+	return m.buf.Write(p)
+}
+
+// Close handles the close call.
+func (m *MemoryCacheFile) Close() error {
+	return nil
+}
+
+// FilePath returns the path to the FIFO pipe that should be used to
+// send and receive data to and from the Editer.
+func (m *MemoryCacheFile) FilePath() string {
+	return m.pipePath
+}
+
+// ReOpen handles the ReOpen call.
+func (m *MemoryCacheFile) ReOpen() error {
+	return nil
+}
+
+// CloseAndRemove deletes the named FIFO pipe.
+func (m *MemoryCacheFile) CloseAndRemove() error {
+	return os.RemoveAll(m.pipePath)
 }

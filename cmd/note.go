@@ -46,6 +46,10 @@ func init() {
 func getNote(cmd *cobra.Command, args []string) {
 	name := args[0]
 	raw, err := cmd.Flags().GetBool("raw")
+	opts := clinote.DefaultNoteOption
+	if raw {
+		opts |= clinote.RawNote
+	}
 	if err != nil {
 		fmt.Println("Error when paring raw flag:", err)
 		return
@@ -61,9 +65,5 @@ func getNote(cmd *cobra.Command, args []string) {
 		fmt.Println("Error when getting the note:", err.Error())
 		os.Exit(1)
 	}
-	if raw {
-		fmt.Println(n.Title, "\n\n", n.Body)
-	} else {
-		fmt.Println(n.Title, "\n\n", n.MD)
-	}
+	clinote.WriteNote(os.Stdout, n, opts)
 }

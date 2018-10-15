@@ -97,6 +97,14 @@ type mockStore struct {
 	settings *clinote.Settings
 }
 
+func (m *mockStore) SaveNoteRecoveryPoint(*clinote.Note) error {
+	panic("not implemented")
+}
+
+func (m *mockStore) GetNoteRecoveryPoint() (*clinote.Note, error) {
+	panic("not implemented")
+}
+
 func (m *mockStore) SaveSearch([]*clinote.Note) error {
 	panic("not implemented")
 }

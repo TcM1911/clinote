@@ -29,6 +29,34 @@ clinote user login
 ```
 If you have your default browser defined in the $BROWSER environment variable, CLInote will open the link in your default browser.
 
+## Authenticating with the Evernote Cloud API using Tokens
+
+Before you can use any features, you need to generate an API token for CLInote to use. Generate a
+token [here](https://dev.evernote.com/doc/articles/dev_tokens.php).
+To add a new set of user credentials, run the command:
+
+```
+clinote user add
+```
+
+To add sandbox credentials, run the command:
+
+```
+clinote user add --sandbox
+```
+
+You can list the credentials with the command:
+
+```
+clinote user list
+```
+
+To set a credential as active use the command `clinote user set credential "index"`. For example:
+
+```
+clinote user set credential 1
+```
+
 ## Create a new note
 
 A new note can be created with the command shown below. A title needs to be given for the note. If no notebook is given, the default notebook will be used. The new note can be open in the $EDITOR by using the edit flag.
@@ -48,6 +76,14 @@ The note can be moved to another notebook by defining the new notebook
 with the notebook flag.
 ```
 clinote note edit "note title" [--title "new note title"] [--notebook "new notebook"]
+```
+
+### Recover note that failed to save
+
+If clinote fails to save a note, the note can be reopened for editing using the `--recover` flag.
+
+```
+clinote note edit --recover
 ```
 
 ## Show note content

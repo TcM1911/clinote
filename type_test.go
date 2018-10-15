@@ -1,7 +1,7 @@
 /*
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -15,7 +15,7 @@
  * Copyright (C) Joakim Kennedy, 2018
  */
 
-package markdown
+package clinote
 
 import (
 	"testing"
@@ -23,14 +23,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFromHTML(t *testing.T) {
+func TestCredentialType(t *testing.T) {
 	assert := assert.New(t)
 
-	para := "Test paragraph"
-	doc := "<p>" + para + "</p>"
-	expected := para
-
-	actual, err := FromHTML(doc)
-	assert.NoError(err, "Should parse the doc without an error")
-	assert.Equal(expected, actual, "Not converted")
+	tests := []struct {
+		name     string
+		expected string
+		credType CredentialType
+	}{
+		{"evernote", "Evernote", EvernoteCredential},
+		{"evernote_sandbox", "Evernote Sandbox", EvernoteSandboxCredential},
+	}
+	for _, test := range tests {
+		t.Run("Credential type "+test.name, func(t *testing.T) {
+			assert.Equal(test.expected, test.credType.String(), "String returns wrong string")
+		})
+	}
 }
