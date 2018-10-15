@@ -1,9 +1,6 @@
 package evernote
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/TcM1911/clinote"
 	ec "github.com/TcM1911/evernote-sdk-golang/client"
 	"github.com/TcM1911/evernote-sdk-golang/notestore"
@@ -77,25 +74,34 @@ func NewClient(cfg clinote.Configuration) *Client {
 	client := new(Client)
 	client.Config = cfg
 	env := ec.PRODUCTION
-	if devBuild {
-		fmt.Println("Dev build")
-		env = ec.SANDBOX
+
+	key := migrateOldSession(cfg)
+	if key != "" {
+		// Migrate an old session.
+		settings, err := cfg.Store().GetSettings()
+		if err != nil {
+			panic(err.Error())
+		}
+		settings.Credential = &clinote.Credential{
+			Name:     "OAuth",
+			Secret:   key,
+			CredType: clinote.EvernoteCredential,
+		}
+		if err := cfg.Store().StoreSettings(settings); err != nil {
+			panic(err.Error())
+		}
+	} else {
+		settings, err := cfg.Store().GetSettings()
+		if err != nil {
+			panic(err.Error())
+		}
+		key = settings.APIKey
+		if settings.Credential.CredType == clinote.EvernoteSandboxCredential {
+			env = ec.SANDBOX
+		}
 	}
 	client.evernote = ec.NewClient(apiConsumer, apiSecret, env)
-	devToken := os.Getenv("EVERNOTE_DEV_TOKEN")
-	if devToken != "" {
-		fmt.Println("Using dev token")
-		client.apiToken = devToken
-	} else {
-		key := migrateOldSession(cfg)
-		if key == "" {
-			settings, err := cfg.Store().GetSettings()
-			if err != nil {
-				panic(err.Error())
-			}
-			key = settings.APIKey
-		}
-		client.apiToken = key
-	}
+	client.apiToken = key
+
 	return client
 }

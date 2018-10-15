@@ -13,6 +13,7 @@ func defaultClient() *evernote.Client {
 		panic("Error when opening the database: " + err.Error())
 	}
 	cfg.DB = db
+	cfg.UDB = db
 	return evernote.NewClient(cfg)
 }
 

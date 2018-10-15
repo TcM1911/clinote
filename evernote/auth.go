@@ -86,6 +86,10 @@ func Login(client APIClient) error {
 		return err
 	}
 	s.APIKey = token
+	if err := clinote.AddNewCredential(client.GetConfig().UserStore(), "OAuth", token, clinote.EvernoteCredential); err != nil {
+		return err
+	}
+	s.Credential = &clinote.Credential{Name: "OAuth", Secret: token, CredType: clinote.EvernoteCredential}
 	return client.GetConfig().Store().StoreSettings(s)
 }
 

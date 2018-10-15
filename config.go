@@ -32,6 +32,8 @@ type Configuration interface {
 	GetCacheFolder() string
 	// Store returns the backend storage.
 	Store() Storager
+	// UserStore returns the user storage.
+	UserStore() UserCredentialStore
 }
 
 // DefaultConfig uses shared config and cache folder with other
@@ -39,6 +41,8 @@ type Configuration interface {
 type DefaultConfig struct {
 	// DB is the backend storage for the client.
 	DB Storager
+	// UDB is the backend storage for user credentials.
+	UDB UserCredentialStore
 }
 
 // GetConfigFolder returns the folder used to store configurations.
@@ -68,6 +72,11 @@ func (*DefaultConfig) GetCacheFolder() string {
 // Store returns a handler to BoltDB.
 func (c *DefaultConfig) Store() Storager {
 	return c.DB
+}
+
+// UserStore returns a handler to BoltDB.
+func (c *DefaultConfig) UserStore() UserCredentialStore {
+	return c.UDB
 }
 
 // Close closes the BoltDB handler.

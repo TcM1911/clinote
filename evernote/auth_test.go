@@ -58,6 +58,7 @@ type cfgMock struct {
 	getCacheFolder func() string
 	getConfFolder  func() string
 	getStore       func() clinote.Storager
+	getUserStore   func() clinote.UserCredentialStore
 }
 
 func (c *cfgMock) GetConfigFolder() string {
@@ -70,6 +71,13 @@ func (c *cfgMock) GetCacheFolder() string {
 
 func (c *cfgMock) Store() clinote.Storager {
 	return c.getStore()
+}
+
+func (c *cfgMock) UserStore() clinote.UserCredentialStore {
+	if c.getUserStore == nil {
+		return nil
+	}
+	return c.getUserStore()
 }
 
 func (c *cfgMock) Close() error {
@@ -126,8 +134,10 @@ func loginHelperFunction(t *testing.T, settings *clinote.Settings, verify, token
 	client := new(mockClient)
 	cfg := new(cfgMock)
 	store := new(mockStore)
+	ustore := new(mockUserStore)
 	store.settings = settings
 	cfg.getStore = func() clinote.Storager { return store }
+	cfg.getUserStore = func() clinote.UserCredentialStore { return ustore }
 	client.getConfig = func() clinote.Configuration { return cfg }
 	client.getAuthorizedToken = func(tmpToken *oauth.RequestToken, verify string) (string, error) {
 		return "oauth_token", nil
@@ -186,4 +196,22 @@ func (c *mockClient) GetConfig() clinote.Configuration {
 
 func (c *mockClient) GetAPIToken() string {
 	return c.apiToken
+}
+
+type mockUserStore struct{}
+
+func (m *mockUserStore) Add(*clinote.Credential) error {
+	return nil
+}
+
+func (m *mockUserStore) Remove(*clinote.Credential) error {
+	panic("not implemented")
+}
+
+func (m *mockUserStore) GetAll() ([]*clinote.Credential, error) {
+	panic("not implemented")
+}
+
+func (m *mockUserStore) GetByIndex(index int) (*clinote.Credential, error) {
+	panic("not implemented")
 }

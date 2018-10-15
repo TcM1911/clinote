@@ -20,7 +20,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/TcM1911/clinote"
 	"github.com/TcM1911/clinote/evernote"
 	"github.com/spf13/cobra"
 )
@@ -31,7 +30,9 @@ var logoutCmd = &cobra.Command{
 	Long: `
 Logs a user out by removing the session token.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := evernote.Logout(&clinote.DefaultConfig{})
+		client := defaultClient()
+		defer client.Close()
+		err := evernote.Logout(client.GetConfig())
 		if err != nil {
 			fmt.Println("Failed to logout:", err.Error())
 			return
