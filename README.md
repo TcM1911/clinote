@@ -21,6 +21,14 @@ go get -v github.com/TcM1911/clinote/cmd
 
 Download pre-build binary from the [release page](https://github.com/TcM1911/clinote/releases).
 
+## Authorize to Evernote via OAuth
+
+Before you can use any features, you need to authorize CLInote to access youre notes. To authorize run the command:
+```
+clinote user login
+```
+If you have your default browser defined in the $BROWSER environment variable, CLInote will open the link in your default browser.
+
 ## Authenticating with the Evernote Cloud API using Tokens
 
 Before you can use any features, you need to generate an API token for CLInote to use. Generate a
