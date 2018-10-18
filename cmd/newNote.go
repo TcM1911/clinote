@@ -74,6 +74,8 @@ func init() {
 
 func createNote(title, notebook string, edit, raw bool) {
 	c := newClient(clinote.DefaultClientOptions)
+	defer c.Store.Close()
+
 	note := new(clinote.Note)
 	if title == "" {
 		note.Title = "<TITLE>"
@@ -98,12 +100,5 @@ func createNote(title, notebook string, edit, raw bool) {
 		}
 		return
 	}
-
-	client := defaultClient()
-	defer client.Close()
-	ns, err := client.GetNoteStore()
-	if err != nil {
-		return
-	}
-	clinote.SaveNewNote(ns, note, raw)
+	clinote.SaveNewNote(c.NoteStore, note, raw)
 }
