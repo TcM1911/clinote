@@ -23,6 +23,8 @@ func newClient(opts clinote.ClientOption) *clinote.Client {
 	if err != nil {
 		panic("Error when opening the database: " + err.Error())
 	}
+	cfg.DB = db
+	cfg.UDB = db
 	ec := evernote.NewClient(cfg)
 	ns, err := ec.GetNoteStore()
 	if err != nil {
