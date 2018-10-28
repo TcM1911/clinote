@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version string = "0.5.0-rc.2"
+const version string = "0.5.0"
 
 var cfgFile string
 
