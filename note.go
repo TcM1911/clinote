@@ -420,6 +420,14 @@ func WriteNote(w io.Writer, n *Note, opts NoteOption) error {
 	} else {
 		_, err = w.Write([]byte(n.MD))
 	}
+	if err != nil {
+		return err
+	}
+	// Add an extra line to ensure note ends with a new line.
+	_, err = w.Write([]byte("\n"))
+	if err != nil {
+		return err
+	}
 	return err
 }
 

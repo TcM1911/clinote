@@ -67,7 +67,8 @@ title: Note title
 Body
 of
 the
-note`
+note
+`
 
 const compactContent = `---
 title:Note title
@@ -75,7 +76,8 @@ title:Note title
 Body
 of
 the
-note`
+note
+`
 
 const contentWithWhiteSpace = `---
 title: Note title

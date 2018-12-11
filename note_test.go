@@ -114,7 +114,7 @@ func TestGetNoteContent(t *testing.T) {
 	}
 	t.Run("return note with content", func(t *testing.T) {
 		title := "Note title"
-		expectedContent := "<p>Note content</p>"
+		expectedContent := "<p>Note content</p>\n"
 		expectedNote := &Note{Title: title}
 		ns := nsWithNote(expectedNote)
 		ns.getNoteContent = func(guid string) (string, error) { return "<en-note>" + expectedContent + "</en-note>", nil }
