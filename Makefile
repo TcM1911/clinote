@@ -4,6 +4,8 @@ VERSION=$(shell grep "const version string" $(VERSION_FILE) | cut -d '"' -f 2)
 DIST_FOLDER=dist
 RELEASE_FILES=CHANGELOG.md LICENSE README.md
 
+RELEASE_BUILD_OPTS=-ldflags="-s -w" -v -a
+
 build:
 	go build -v -o clinote ./cmd/...
 
@@ -31,12 +33,12 @@ coverage: coverage_evernote
 
 build_386:
 	mkdir -p target/clinote-$(VERSION)-i386
-	GOOS=linux GOARCH=386 go build -v -a -o target/clinote-$(VERSION)-i386/clinote ./cmd
+	GOOS=linux GOARCH=386 go build $(RELEASE_BUILD_OPTS) -o target/clinote-$(VERSION)-i386/clinote ./cmd
 	cp $(RELEASE_FILES) target/clinote-$(VERSION)-i386/
 
 build_amd64:
 	mkdir -p target/clinote-$(VERSION)-amd64
-	GOOS=linux GOARCH=amd64 go build -v -a -o target/clinote-$(VERSION)-amd64/clinote ./cmd
+	GOOS=linux GOARCH=amd64 go build $(RELEASE_BUILD_OPTS) -o target/clinote-$(VERSION)-amd64/clinote ./cmd
 	cp $(RELEASE_FILES) target/clinote-$(VERSION)-amd64/
 
 release_386:
@@ -56,7 +58,7 @@ release_macos:
 
 build_macos:
 	mkdir -p target/clinote-$(VERSION)-macos
-	GOOS=darwin GOARCH=amd64 go build -v -a -o target/clinote-$(VERSION)-macos/clinote ./cmd
+	GOOS=darwin GOARCH=amd64 go build $(RELEASE_BUILD_OPTS) -o target/clinote-$(VERSION)-macos/clinote ./cmd
 	cp $(RELEASE_FILES) target/clinote-$(VERSION)-macos/
 
 build_all: build_386 build_amd64
