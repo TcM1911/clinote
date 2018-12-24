@@ -78,7 +78,7 @@ func createNote(title, notebook string, edit, raw bool) {
 
 	note := new(clinote.Note)
 	if title == "" {
-		note.Title = "<TITLE>"
+		note.Title = "Untitled note"
 	} else {
 		note.Title = title
 	}
