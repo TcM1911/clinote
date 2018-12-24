@@ -1,5 +1,11 @@
 # Changelog
 
+## Next release
+
+### Bug fixes
+
+* Ensure notes ends with a new line character.
+
 ## 0.5.0
 
 ### New method for adding credentials
