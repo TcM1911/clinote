@@ -56,6 +56,8 @@ var (
 	errNoBucket = errors.New("no bucket")
 	// ErrIndexOutOfRange is returned if an index is out of range.
 	ErrIndexOutOfRange = errors.New("index out of range")
+	// ErrEncodeDBVersion is returned if the database version fails to be encoded.
+	ErrEncodeDBVersion = errors.New("failed to encode db version")
 )
 
 // Open returns an instance of the database.
@@ -102,7 +104,7 @@ func (d *Database) saveDBVersion(version uint64) error {
 	buf := make([]byte, 8)
 	n := binary.PutUvarint(buf, version)
 	if n <= 0 {
-		return errors.New("failed to encode db version")
+		return ErrEncodeDBVersion
 	}
 	return d.storeData(dbBucket, dbVersionKey, buf)
 }
