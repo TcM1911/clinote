@@ -40,6 +40,7 @@ var (
 
 // List of keys
 var (
+	dbFilename          = "clinote.db"
 	settingsKey         = []byte("user_settings")
 	credentialsKey      = []byte("user_credentials")
 	notebookCacheKey    = []byte("notebook_cache")
@@ -56,7 +57,7 @@ var (
 
 // Open returns an instance of the database.
 func Open(cfgFolder string) (*Database, error) {
-	b, err := bolt.Open(filepath.Join(cfgFolder, "clinote.db"), 0600, nil)
+	b, err := bolt.Open(filepath.Join(cfgFolder, dbFilename), 0600, nil)
 	if err != nil {
 		return nil, err
 	}
