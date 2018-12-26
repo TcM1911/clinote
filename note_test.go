@@ -632,6 +632,63 @@ func TestEditNote(t *testing.T) {
 	})
 }
 
+func TestCreateAndEditNewNote(t *testing.T) {
+	assert := assert.New(t)
+	store := &mockStore{}
+
+	note := &Note{
+		Title: "Untitled note",
+	}
+	ns := nsWithNote(note)
+	ns.createNote = func(n *Note) error { return nil }
+
+	var actualFilename string
+
+	client := &Client{
+		Config:    &DefaultConfig{},
+		Store:     store,
+		NoteStore: ns,
+		newCacheFile: func(c *Client, filename string) (CacheFile, error) {
+			buf := new(bytes.Buffer)
+			actualFilename = filename
+			return &mockCacheFile{buffer: buf}, nil
+		},
+		Editor: &mockEditor{
+			edit: func(file CacheFile) error {
+				return nil
+			},
+		},
+	}
+	expectedError := errors.New("expected error")
+
+	t.Run("create_random_file_for_new_note", func(t *testing.T) {
+		err := CreateAndEditNewNote(client, note, DefaultNoteOption)
+		assert.NoError(err)
+		assert.Contains(actualFilename, newNotePrependString)
+		// Length of UUID string + length of the prepended string + file extension.
+		assert.Len(actualFilename, 36+len(newNotePrependString)+3)
+	})
+
+	t.Run("handle_error_from_parsing", func(t *testing.T) {
+		client.newCacheFile = func(_ *Client, _ string) (CacheFile, error) {
+			return &mockCacheFile{
+				read:   func([]byte) (int, error) { return 0, expectedError },
+				buffer: new(bytes.Buffer),
+			}, nil
+		}
+		err := CreateAndEditNewNote(client, note, DefaultNoteOption)
+		assert.Error(err)
+		assert.Equal(expectedError, err)
+	})
+
+	t.Run("handle_error_from_edit", func(t *testing.T) {
+		client.newCacheFile = func(_ *Client, _ string) (CacheFile, error) { return nil, expectedError }
+		err := CreateAndEditNewNote(client, note, DefaultNoteOption)
+		assert.Error(err)
+		assert.Equal(expectedError, err)
+	})
+}
+
 func nsWithNote(note *Note) *mockNS {
 	notes := []*Note{&Note{Title: "Other note"}, note}
 	ns := new(mockNS)

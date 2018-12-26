@@ -2,9 +2,14 @@
 
 ## Next release
 
+### Tests
+
+Added unit tests for the function CreateAndEditNewNote
+
 ### Bug fixes
 
 * Ensure notes ends with a new line character.
+* Fixed temporary filename when editing new notes
 
 ## 0.5.0
 

@@ -12,7 +12,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
- * Copyright (C) Joakim Kennedy, 2016-2017
+ * Copyright (C) Joakim Kennedy, 2016-2018
  */
 
 package clinote
@@ -29,14 +29,16 @@ import (
 	"strings"
 
 	"github.com/TcM1911/clinote/markdown"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
 	// XMLHeader is the header that needs to added to the note content.
 	XMLHeader = `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">`
 	// headSep indicates the start and end of the note header
-	headSep        = "---"
-	headTitleField = "title:"
+	headSep              = "---"
+	headTitleField       = "title:"
+	newNotePrependString = "new_note_"
 )
 
 var (
@@ -299,10 +301,10 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 // Once the editor has been closed, the note is saved to the notestore.
 func CreateAndEditNewNote(client *Client, note *Note, opts NoteOption) error {
 	cacheFile, err := editNote(client, note, opts)
-	defer cacheFile.CloseAndRemove()
 	if err != nil {
 		return err
 	}
+	defer cacheFile.CloseAndRemove()
 	err = parseNote(cacheFile, note, opts)
 	if err != nil {
 		return err
@@ -310,15 +312,33 @@ func CreateAndEditNewNote(client *Client, note *Note, opts NoteOption) error {
 	return SaveNewNote(client.NoteStore, note, opts&RawNote != 0)
 }
 
+func randomFilename(prepend string) (string, error) {
+	id, err := uuid.NewV4()
+	if err != nil {
+		return "", err
+	}
+	return prepend + id.String(), nil
+}
+
 func editNote(client *Client, note *Note, opts NoteOption) (CacheFile, error) {
-	// var body string
-	var filename string
+	filename := ""
+
+	// If the note has a GUID == "", it is a new note.
+	// In this case, generate a random filename.
+	if note.GUID == "" {
+		randName, err := randomFilename(newNotePrependString)
+		if err != nil {
+			return nil, err
+		}
+		filename += randName
+	}
+
 	if opts&RawNote != 0 {
-		// body = note.Body
-		filename = note.GUID + ".xml"
+		// Since the GUID is an empty string for new notes, we can allow a append of it.
+		filename += note.GUID + ".xml"
 	} else {
 		// body = note.MD
-		filename = note.GUID + ".md"
+		filename += note.GUID + ".md"
 	}
 	cacheFile, err := client.NewCacheFile(filename)
 	if err != nil {
