@@ -27,6 +27,10 @@ import (
 	"github.com/boltdb/bolt"
 )
 
+const (
+	dbFilename = "clinote.db"
+)
+
 // 0: Initial version of the database.
 // 1: Added credential store, migration of OAuth token.
 var softwareDBVersion = uint64(1)
@@ -40,7 +44,6 @@ var (
 
 // List of keys
 var (
-	dbFilename          = "clinote.db"
 	settingsKey         = []byte("user_settings")
 	credentialsKey      = []byte("user_credentials")
 	notebookCacheKey    = []byte("notebook_cache")
