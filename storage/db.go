@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"errors"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/TcM1911/clinote"
 	"github.com/boltdb/bolt"
@@ -34,6 +36,9 @@ const (
 // 0: Initial version of the database.
 // 1: Added credential store, migration of OAuth token.
 var softwareDBVersion = uint64(1)
+
+// This is what the current wait time before the database is closed.
+var currentWaitTime = 5 * time.Second
 
 // List of buckets
 var (
@@ -62,11 +67,19 @@ var (
 
 // Open returns an instance of the database.
 func Open(cfgFolder string) (*Database, error) {
-	b, err := bolt.Open(filepath.Join(cfgFolder, dbFilename), 0600, nil)
+	filename := filepath.Join(cfgFolder, dbFilename)
+	b, err := bolt.Open(filename, 0600, nil)
 	if err != nil {
 		return nil, err
 	}
-	d := &Database{bolt: b}
+	d := &Database{
+		bolt:       b,
+		dbFilename: filename,
+		resetChan:  make(chan struct{}),
+		// TODO: This property should be configurable.
+		waitTime: currentWaitTime,
+	}
+	go dbWaitingLoop(d)
 
 	// Check if migration is needed.
 	currVersion, err := d.getDBVersion()
@@ -83,9 +96,83 @@ func Open(cfgFolder string) (*Database, error) {
 	return d, err
 }
 
+func dbWaitingLoop(d *Database) {
+	defer d.closeDB()
+	for {
+		for {
+			select {
+			case <-d.resetChan:
+				break
+
+			case <-time.After(d.waitTime):
+				return
+			}
+		}
+	}
+}
+
 // Database is a representation of the backend storage.
 type Database struct {
+	// bolt is the database handler. This should not be accessed directly.
+	// Instead getDBHandler() should be used to get a handler. Accessing this directly
+	// is not thread safe.
 	bolt *bolt.DB
+	// Mutex for the handler to ensure only one go routine has the handler.
+	handlerMu sync.Mutex
+
+	// dbFilename is the absolute path of the database file.
+	dbFilename string
+	// resetChan is used to reset the timer before the database is closed.
+	resetChan chan struct{}
+	// waitTime is how long the database should be held open.
+	waitTime time.Duration
+}
+
+// open is used internally to reopen the database file. This method is not thread safe and
+// assumes the caller holds the lock.
+func (d *Database) open() (*bolt.DB, error) {
+	if d.bolt != nil {
+		return d.bolt, nil
+	}
+	// Start closing wait loop
+	go dbWaitingLoop(d)
+	return bolt.Open(d.dbFilename, 0600, nil)
+}
+
+func (d *Database) closeDB() error {
+	d.handlerMu.Lock()
+	defer d.handlerMu.Unlock()
+
+	if d.bolt == nil {
+		return nil
+	}
+
+	err := d.bolt.Close()
+	d.bolt = nil
+	return err
+}
+
+// getDBHandler returns a handler to the database after it has acquired the mutex lock.
+// The caller MUST call releaseDBHandler when done. Otherwise this can cause a deadlock.
+func (d *Database) getDBHandler() (*bolt.DB, error) {
+	d.handlerMu.Lock()
+	if d.bolt != nil {
+		// Reset timer
+		d.resetChan <- struct{}{}
+		return d.bolt, nil
+	}
+	b, err := d.open()
+	if err != nil {
+		return nil, err
+	}
+	d.bolt = b
+
+	return d.bolt, nil
+}
+
+// releaseDBHandler unlocks the mutex to get other go routines access to the database handler.
+func (d *Database) releaseDBHandler() {
+	d.handlerMu.Unlock()
 }
 
 func (d *Database) getDBVersion() (uint64, error) {
@@ -111,7 +198,12 @@ func (d *Database) saveDBVersion(version uint64) error {
 
 func (d *Database) getData(bucket, key []byte) ([]byte, error) {
 	var data []byte
-	err := d.bolt.View(func(t *bolt.Tx) error {
+	db, err := d.getDBHandler()
+	defer d.releaseDBHandler()
+	if err != nil {
+		return data, err
+	}
+	err = db.View(func(t *bolt.Tx) error {
 		b := t.Bucket(bucket)
 		if b == nil {
 			return errNoBucket
@@ -120,7 +212,7 @@ func (d *Database) getData(bucket, key []byte) ([]byte, error) {
 		return nil
 	})
 	if err == errNoBucket {
-		err := d.bolt.Update(func(t *bolt.Tx) error {
+		err := db.Update(func(t *bolt.Tx) error {
 			_, err := t.CreateBucket(bucket)
 			if err != nil {
 				return err
@@ -133,7 +225,12 @@ func (d *Database) getData(bucket, key []byte) ([]byte, error) {
 }
 
 func (d *Database) storeData(bucket, key, data []byte) error {
-	return d.bolt.Update(func(t *bolt.Tx) error {
+	db, err := d.getDBHandler()
+	defer d.releaseDBHandler()
+	if err != nil {
+		return err
+	}
+	return db.Update(func(t *bolt.Tx) error {
 		b, err := t.CreateBucketIfNotExists(bucket)
 		if err != nil {
 			return err
@@ -221,7 +318,7 @@ func (d *Database) GetNoteRecoveryPoint() (*clinote.Note, error) {
 
 // Close shuts down the connection to the database.
 func (d *Database) Close() error {
-	return d.bolt.Close()
+	return d.closeDB()
 }
 
 // Add adds a new credential to the database.

@@ -2,6 +2,16 @@
 
 ## Next release
 
+### Improvements
+
+#### Support for running multiple instances of CLInote
+
+The database, boltdb, used locks the database file to ensure only
+one process has access to the database. This prevents multiple
+instances of CLInote to run at the same time. This improvement
+ensures the database closes at least 5 seconds after the last db
+action to allow other instances access the db.
+
 ### Tests
 
 Added unit tests for the function CreateAndEditNewNote
