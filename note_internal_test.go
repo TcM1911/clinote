@@ -42,13 +42,21 @@ func TestNoteParsing(t *testing.T) {
 			assert.NoError(err, "Should not return an error")
 			assert.Equal(noteTitle, n.Title, "Wrong title parsed")
 			assert.Equal(noteContent, n.MD, "Wrong content parsed")
+			assert.Equal(notebookName, n.Notebook.Name, "Wrong notebook parsed")
 		})
 	}
 }
 
 func TestNoteWriting(t *testing.T) {
 	assert := assert.New(t)
-	n := &Note{Title: noteTitle, MD: noteContent}
+	n := &Note{
+		Title: noteTitle,
+		MD:    noteContent,
+		Notebook: &Notebook{
+			Name: notebookName,
+			GUID: notebookGUID,
+		},
+	}
 	w := new(bytes.Buffer)
 
 	err := WriteNote(w, n, DefaultNoteOption)
@@ -57,12 +65,15 @@ func TestNoteWriting(t *testing.T) {
 }
 
 const (
-	noteTitle   = "Note title"
-	noteContent = "Body\nof\nthe\nnote"
+	noteTitle    = "Note title"
+	noteContent  = "Body\nof\nthe\nnote"
+	notebookGUID = "Notebook GUID"
+	notebookName = "Notebook name"
 )
 
 const testContent = `---
 title: Note title
+notebook: Notebook name
 ---
 Body
 of
@@ -72,6 +83,7 @@ note
 
 const compactContent = `---
 title:Note title
+notebook: Notebook name
 ---
 Body
 of
@@ -81,6 +93,7 @@ note
 
 const contentWithWhiteSpace = `---
 title: Note title
+notebook: Notebook name
 ---
 
 Body

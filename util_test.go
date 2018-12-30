@@ -30,6 +30,7 @@ type mockNS struct {
 	saveNewNote     func(n *Note) error
 	createNote      func(n *Note) error
 	updateNotebook  func(b *Notebook) error
+	getNotebook     func(guid string) (*Notebook, error)
 }
 
 func (s *mockNS) UpdateNotebook(b *Notebook) error {
@@ -69,7 +70,7 @@ func (s *mockNS) CreateNotebook(b *Notebook, defaultNotebook bool) error {
 }
 
 func (s *mockNS) GetNotebook(guid string) (*Notebook, error) {
-	panic("not implemented")
+	return s.getNotebook(guid)
 }
 
 type mockStore struct {
