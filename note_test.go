@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -357,6 +358,13 @@ func TestEditNote(t *testing.T) {
 		// Setup store
 		store := new(mockStore)
 
+		notebookGUID := "NOTEBOOKGUID"
+		notebookName := "Name of the notebook"
+		expectedNotebook := &Notebook{
+			GUID: notebookGUID,
+			Name: notebookName,
+		}
+
 		// Setup notestore
 		noteTitle := "Note Title"
 		originalContent := "Body content"
@@ -365,9 +373,18 @@ func TestEditNote(t *testing.T) {
 			Body:  "<en-note><p>" + originalContent + "</p></en-note>",
 			MD:    originalContent,
 			GUID:  "NOTEGUID",
+			Notebook: &Notebook{
+				GUID: notebookGUID,
+			},
 		}
 		ns := nsWithNote(expectedNote)
 		ns.getNoteContent = func(guid string) (string, error) { return expectedNote.Body, nil }
+		ns.getNotebook = func(guid string) (*Notebook, error) {
+			if guid != expectedNotebook.GUID {
+				return nil, nil
+			}
+			return expectedNotebook, nil
+		}
 
 		// Setup editer
 		var writtenData []byte
@@ -629,6 +646,131 @@ func TestEditNote(t *testing.T) {
 		err := EditNote(c, expectedNote.Title, DefaultNoteOption|UseRecoveryPointNote)
 		assert.Error(err, "Should return an error")
 		assert.Equal(ErrNoNoteFound, err, "Wrong error returned")
+	})
+
+	t.Run("handle_error_from_GetNotebook", func(t *testing.T) {
+		c, ns, _, expectedNote, _, _ := setupClientAndStore("added text")
+		ns.getNotebook = func(guid string) (*Notebook, error) { return nil, expectedError }
+
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption)
+		assert.Error(err, "Should return an error")
+	})
+
+	t.Run("handle_error_from_checkForNotebookAndUpdate", func(t *testing.T) {
+		c, _, _, expectedNote, _, store := setupClientAndStore("added text")
+		store.getNotebookCache = func() (*NotebookCacheList, error) { return nil, expectedError }
+		editor := &mockEditor{
+			edit: func(file CacheFile) error {
+				cache, ok := file.(*mockCacheFile)
+				if !ok {
+					t.Fatalf("Wrong CacheFile type\n")
+				}
+				cache.buffer.Reset()
+				_, err := cache.buffer.WriteString(
+					`---
+title: New title
+notebook: New name of the notebook
+---`)
+				return err
+			},
+		}
+		c.Editor = editor
+
+		err := EditNote(c, expectedNote.Title, DefaultNoteOption)
+		assert.Error(err, "Should return an error")
+
+	})
+}
+
+func TestCreateAndEditNewNote(t *testing.T) {
+	assert := assert.New(t)
+	store := &mockStore{}
+
+	note := &Note{
+		Title: "Untitled note",
+	}
+	ns := nsWithNote(note)
+	var savedNote *Note
+	ns.createNote = func(n *Note) error { savedNote = n; return nil }
+
+	var actualFilename string
+
+	client := &Client{
+		Config:    &DefaultConfig{},
+		Store:     store,
+		NoteStore: ns,
+		newCacheFile: func(c *Client, filename string) (CacheFile, error) {
+			buf := new(bytes.Buffer)
+			actualFilename = filename
+			return &mockCacheFile{buffer: buf}, nil
+		},
+		Editor: &mockEditor{
+			edit: func(file CacheFile) error {
+				return nil
+			},
+		},
+	}
+	expectedError := errors.New("expected error")
+
+	t.Run("create_random_file_for_new_note", func(t *testing.T) {
+		err := CreateAndEditNewNote(client, note, DefaultNoteOption)
+		assert.NoError(err)
+		assert.Contains(actualFilename, newNotePrependString)
+		// Length of UUID string + length of the prepended string + file extension.
+		assert.Len(actualFilename, 36+len(newNotePrependString)+3)
+	})
+
+	t.Run("handle_error_from_parsing", func(t *testing.T) {
+		client.newCacheFile = func(_ *Client, _ string) (CacheFile, error) {
+			return &mockCacheFile{
+				read:   func([]byte) (int, error) { return 0, expectedError },
+				buffer: new(bytes.Buffer),
+			}, nil
+		}
+		err := CreateAndEditNewNote(client, note, DefaultNoteOption)
+		assert.Error(err)
+		assert.Equal(expectedError, err)
+	})
+
+	t.Run("handle_error_from_edit", func(t *testing.T) {
+		client.newCacheFile = func(_ *Client, _ string) (CacheFile, error) { return nil, expectedError }
+		err := CreateAndEditNewNote(client, note, DefaultNoteOption)
+		assert.Error(err)
+		assert.Equal(expectedError, err)
+	})
+
+	t.Run("add_to_notebook", func(t *testing.T) {
+		store.getNotebookCache = func() (*NotebookCacheList, error) {
+			return &NotebookCacheList{
+				Timestamp: time.Now(),
+				Notebooks: []*Notebook{&Notebook{Name: "Name of the notebook"}},
+				Limit:     1 * time.Hour,
+			}, nil
+		}
+		editor := &mockEditor{
+			edit: func(file CacheFile) error {
+				cache, ok := file.(*mockCacheFile)
+				if !ok {
+					t.Fatalf("Wrong CacheFile type\n")
+				}
+				cache.buffer.Reset()
+				_, err := cache.buffer.WriteString(
+					`---
+title: New title
+notebook: Name of the notebook
+---`)
+				return err
+			},
+		}
+		client.Editor = editor
+		client.newCacheFile = func(c *Client, filename string) (CacheFile, error) {
+			buf := new(bytes.Buffer)
+			actualFilename = filename
+			return &mockCacheFile{buffer: buf}, nil
+		}
+		err := CreateAndEditNewNote(client, note, DefaultNoteOption)
+		assert.NoError(err)
+		assert.Equal("Name of the notebook", savedNote.Notebook.Name)
 	})
 }
 

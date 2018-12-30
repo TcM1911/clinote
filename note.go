@@ -12,7 +12,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
- * Copyright (C) Joakim Kennedy, 2016-2017
+ * Copyright (C) Joakim Kennedy, 2016-2018
  */
 
 package clinote
@@ -29,14 +29,18 @@ import (
 	"strings"
 
 	"github.com/TcM1911/clinote/markdown"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
 	// XMLHeader is the header that needs to added to the note content.
 	XMLHeader = `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">`
 	// headSep indicates the start and end of the note header
-	headSep        = "---"
-	headTitleField = "title:"
+	headSpace             = " "
+	headSep               = "---"
+	headTitleField        = "title:"
+	headNotebookNameField = "notebook:"
+	newNotePrependString  = "new_note_"
 )
 
 var (
@@ -273,6 +277,12 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 		return err
 	}
 	oldHash := note.Hash(opts&RawNote != 0)
+	nb, err := GetNotebook(client.NoteStore, note.Notebook.GUID)
+	if err != nil {
+		return err
+	}
+	note.Notebook = nb
+	initialNotebook := getNotebookName(note)
 	cacheFile, err := editNote(client, note, opts)
 	if err != nil {
 		return err
@@ -282,7 +292,11 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 	if err != nil {
 		return err
 	}
-	if bytes.Equal(oldHash, note.Hash(opts&RawNote != 0)) {
+	err = checkForNotebookAndUpdate(client, note, initialNotebook)
+	if err != nil {
+		return err
+	}
+	if bytes.Equal(oldHash, note.Hash(opts&RawNote != 0)) && initialNotebook == note.Notebook.Name {
 		return nil
 	}
 	err = SaveChanges(ns, note, opts)
@@ -298,27 +312,70 @@ func EditNote(client *Client, title string, opts NoteOption) error {
 // CreateAndEditNewNote creates a new note and opens it in the client's editor.
 // Once the editor has been closed, the note is saved to the notestore.
 func CreateAndEditNewNote(client *Client, note *Note, opts NoteOption) error {
+	initialNotebook := getNotebookName(note)
 	cacheFile, err := editNote(client, note, opts)
-	defer cacheFile.CloseAndRemove()
 	if err != nil {
 		return err
 	}
+	defer cacheFile.CloseAndRemove()
 	err = parseNote(cacheFile, note, opts)
+	if err != nil {
+		return err
+	}
+	err = checkForNotebookAndUpdate(client, note, initialNotebook)
 	if err != nil {
 		return err
 	}
 	return SaveNewNote(client.NoteStore, note, opts&RawNote != 0)
 }
 
+func checkForNotebookAndUpdate(client *Client, note *Note, initialNotebook string) error {
+	if note.Notebook == nil || initialNotebook == note.Notebook.Name {
+		return nil
+	}
+	b, err := FindNotebook(client.Store, client.NoteStore, note.Notebook.Name)
+	if err != nil {
+		return err
+	}
+	note.Notebook = b
+	return nil
+}
+
+// getNotebookName returns the Notebook name or an empty string.
+func getNotebookName(note *Note) string {
+	if note.Notebook == nil {
+		return ""
+	}
+	return note.Notebook.Name
+}
+
+func randomFilename(prepend string) (string, error) {
+	id, err := uuid.NewV4()
+	if err != nil {
+		return "", err
+	}
+	return prepend + id.String(), nil
+}
+
 func editNote(client *Client, note *Note, opts NoteOption) (CacheFile, error) {
-	// var body string
-	var filename string
+	filename := ""
+
+	// If the note has a GUID == "", it is a new note.
+	// In this case, generate a random filename.
+	if note.GUID == "" {
+		randName, err := randomFilename(newNotePrependString)
+		if err != nil {
+			return nil, err
+		}
+		filename += randName
+	}
+
 	if opts&RawNote != 0 {
-		// body = note.Body
-		filename = note.GUID + ".xml"
+		// Since the GUID is an empty string for new notes, we can allow a append of it.
+		filename += note.GUID + ".xml"
 	} else {
 		// body = note.MD
-		filename = note.GUID + ".md"
+		filename += note.GUID + ".md"
 	}
 	cacheFile, err := client.NewCacheFile(filename)
 	if err != nil {
@@ -371,8 +428,18 @@ func parseHeader(scanner *bufio.Scanner, n *Note) error {
 		// End of header
 		if line == headSep {
 			break
-		} else if strings.Index(line, headTitleField) == 0 {
+		}
+
+		if strings.Index(line, headTitleField) == 0 {
 			n.Title = strings.TrimSpace(line[len(headTitleField):])
+			continue
+		}
+
+		if strings.Index(line, headNotebookNameField) == 0 {
+			if n.Notebook == nil {
+				n.Notebook = new(Notebook)
+			}
+			n.Notebook.Name = strings.TrimSpace(line[len(headNotebookNameField):])
 		}
 	}
 	return scanner.Err()
@@ -398,8 +465,11 @@ func writeNoteHeader(w io.Writer, n *Note) error {
 	a := []string{
 		headSep,
 		headTitleField + " " + n.Title,
-		headSep,
 	}
+	if n.Notebook != nil && n.Notebook.Name != "" {
+		a = append(a, headNotebookNameField+headSpace+n.Notebook.Name)
+	}
+	a = append(a, headSep)
 	for _, line := range a {
 		_, err := w.Write([]byte(line + "\n"))
 		if err != nil {

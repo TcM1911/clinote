@@ -36,7 +36,12 @@ func migrate(db *Database, currVersion uint64) error {
 
 func migrateOAuthCredential(db *Database) error {
 	var data []byte
-	err := db.bolt.View(func(t *bolt.Tx) error {
+	d, err := db.getDBHandler()
+	if err != nil {
+		db.releaseDBHandler()
+		return err
+	}
+	err = d.View(func(t *bolt.Tx) error {
 		b := t.Bucket(settingsBucket)
 		if b == nil {
 			return errNoBucket
@@ -45,10 +50,8 @@ func migrateOAuthCredential(db *Database) error {
 		return nil
 	})
 	if err == errNoBucket {
+		db.releaseDBHandler()
 		return nil
-	}
-	if err != nil {
-		return err
 	}
 
 	// Decode
@@ -57,7 +60,9 @@ func migrateOAuthCredential(db *Database) error {
 	}
 	err = json.Unmarshal(data, &settings)
 	if err != nil {
+		db.releaseDBHandler()
 		return err
 	}
+	db.releaseDBHandler()
 	return db.Add(&clinote.Credential{Name: "OAuth", Secret: settings.APIKey, CredType: clinote.EvernoteCredential})
 }

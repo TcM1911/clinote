@@ -1,5 +1,32 @@
 # Changelog
 
+## Next release
+
+### Improvements
+
+#### Support for running multiple instances of CLInote
+
+The database, boltdb, used locks the database file to ensure only
+one process has access to the database. This prevents multiple
+instances of CLInote to run at the same time. This improvement
+ensures the database closes at least 5 seconds after the last db
+action to allow other instances access the db.
+
+#### Notebook name added to the note header
+
+The notebook name has been added to the note header. The note can
+be moved to a different notebook by changing the notebook in the
+header.
+
+### Tests
+
+Added unit tests for the function CreateAndEditNewNote
+
+### Bug fixes
+
+* Ensure notes ends with a new line character.
+* Fixed temporary filename when editing new notes
+
 ## 0.5.0
 
 ### New method for adding credentials
