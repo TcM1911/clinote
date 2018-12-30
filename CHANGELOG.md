@@ -18,6 +18,10 @@ The notebook name has been added to the note header. The note can
 be moved to a different notebook by changing the notebook in the
 header.
 
+#### Reduce size of the binary
+
+The release binaries are now stripped to reduce the size.
+
 ### Tests
 
 Added unit tests for the function CreateAndEditNewNote
