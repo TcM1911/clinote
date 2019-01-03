@@ -75,7 +75,7 @@ func Open(cfgFolder string) (*Database, error) {
 	d := &Database{
 		bolt:       b,
 		dbFilename: filename,
-		resetChan:  make(chan struct{}),
+		resetChan:  make(chan struct{}, 1),
 		// TODO: This property should be configurable.
 		waitTime: currentWaitTime,
 	}
