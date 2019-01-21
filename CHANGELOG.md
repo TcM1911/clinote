@@ -4,6 +4,10 @@
 
 ### Improvements
 
+#### FreeBSD support
+
+Initial support for FreeBSD has been added. Support is experimental.
+
 #### Support for running multiple instances of CLInote
 
 The database, boltdb, used locks the database file to ensure only
