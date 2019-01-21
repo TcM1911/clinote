@@ -39,15 +39,14 @@ func TestOpenAndCloseDB(t *testing.T) {
 	// db.waitTime = testWaitTime
 
 	t.Run("multiopen_calls", func(t *testing.T) {
+		db.handlerMu.Lock()
 		newDB, err := db.open()
 		assert.NoError(err)
-		db.handlerMu.Lock()
 		assert.Equal(db.bolt, newDB)
-		db.handlerMu.Unlock()
+		db.bolt = newDB
 
 		newDB, err = db.open()
 		assert.NoError(err)
-		db.handlerMu.Lock()
 		assert.Equal(db.bolt, newDB)
 		db.handlerMu.Unlock()
 	})
