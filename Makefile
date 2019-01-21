@@ -61,9 +61,19 @@ build_macos:
 	GOOS=darwin GOARCH=amd64 go build $(RELEASE_BUILD_OPTS) -o target/clinote-$(VERSION)-macos/clinote ./cmd
 	cp $(RELEASE_FILES) target/clinote-$(VERSION)-macos/
 
-build_all: build_386 build_amd64
+release_freebsd:
+	mkdir -p $(DIST_FOLDER)
+	tar cfvz $(DIST_FOLDER)/clinote-$(VERSION)-freebsd.tar.gz -C target clinote-$(VERSION)-freebsd
+	cd dist && shasum -a 256 clinote-$(VERSION)-freebsd.tar.gz > clinote-$(VERSION)-freebsd.tar.gz.sha256sum
 
-release_all: release_386 release_amd64
+build_freebsd:
+	mkdir -p target/clinote-$(VERSION)-freebsd
+	GOOS=freebsd GOARCH=amd64 go build $(RELEASE_BUILD_OPTS) -o target/clinote-$(VERSION)-freebsd/clinote ./cmd
+	cp $(RELEASE_FILES) target/clinote-$(VERSION)-freebsd/
+
+build_all: build_386 build_amd64 build_freebsd
+
+release_all: release_386 release_amd64 release_freebsd
 
 prep_release:
 	sed -i 's/[0-9]\+.[0-9]\+.[0-9]\+-SNAPSHOT/$(VERSION)/' $(VERSION_FILE)
