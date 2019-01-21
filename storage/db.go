@@ -157,8 +157,12 @@ func (d *Database) closeDB() error {
 func (d *Database) getDBHandler() (*bolt.DB, error) {
 	d.handlerMu.Lock()
 	if d.bolt != nil {
-		// Reset timer
-		d.resetChan <- struct{}{}
+		// Wrap the call in a go func to prevent deadlock.
+		// TODO: Wait-loop should be rewritten so this is not needed.
+		go func() {
+			// Reset timer
+			d.resetChan <- struct{}{}
+		}()
 		return d.bolt, nil
 	}
 	b, err := d.open()
