@@ -75,7 +75,7 @@ func TestOpenAndCloseDB(t *testing.T) {
 
 		// Sleep to wait for time to expire
 		runtime.Gosched()
-		time.Sleep(testWaitTime * 2)
+		time.Sleep(testWaitTime * 10)
 
 		db.handlerMu.Lock()
 		assert.Nil(db.bolt)
