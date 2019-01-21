@@ -42,7 +42,7 @@ func TestOpenAndCloseDB(t *testing.T) {
 		db.handlerMu.Lock()
 		newDB, err := db.open()
 		assert.NoError(err)
-		assert.Equal(db.bolt, newDB)
+		assert.Nil(db.bolt)
 		db.bolt = newDB
 
 		newDB, err = db.open()
