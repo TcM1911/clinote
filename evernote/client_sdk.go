@@ -96,7 +96,7 @@ func NewClient(cfg clinote.Configuration) *Client {
 			panic(err.Error())
 		}
 		key = settings.APIKey
-		if settings.Credential.CredType == clinote.EvernoteSandboxCredential {
+		if settings.Credential != nil && settings.Credential.CredType == clinote.EvernoteSandboxCredential {
 			env = ec.SANDBOX
 		}
 	}
