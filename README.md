@@ -2,7 +2,7 @@
 
 # CLInote
 
-CLInote is a command line client for Evernote inspired by [geeknote](https://github.com/VitaliyRodnenko/geeknote).
+CLInote is a command line client for Evernote inspired by [geeknote](https://github.com/vitaly-zdanevich/geeknote).
 
 CLInote allows you to:
 
